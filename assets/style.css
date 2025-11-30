@@ -1,60 +1,42 @@
-.top-container {
-    display: flex;
-    gap: 20px;
-    margin-bottom: 30px;
+/* Main dashboard container - ensure full viewport width */
+.dashboard-container {
+    width: 100%;
+    max-width: none;
+    padding: 0;
+    margin: 0;
+    box-sizing: border-box;
 }
 
-.info-panel {
-    padding: 20px;
-    border: 1px solid #ccc;
-}
-
+/* Bottom section - full width with horizontal margins */
 .bottom-container {
     display: flex;
     gap: 20px;
+    width: 100%;
+    padding: 0 80px; /* Considerable left/right margins */
+    box-sizing: border-box;
 }
 
-.sidebar {
-    flex: 0 0 150px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
-
-.careers-section {
-    display: flex;
-    gap: 20px;
-    padding: 20px;
-    width: 75%;
-    margin: 0 auto;
-}
-
-.chart-controls {
-    flex: 0 0 150px;
-    padding-top: 40px;
-}
-
-.career-chart {
-    flex: 1 1 0;
-    min-height: 600px;
-}
-
+/* Chart wrapper - takes remaining space */
 .chart-card-wrapper {
     display: flex;
     gap: 20px;
-    flex: 1;
+    flex: 1 1 0;
+    width: 100%;
+    min-width: 0; /* Prevents flexbox overflow issues */
 }
 
-.driver-card {
-    width: 300px;
-    background: #f8f9fa;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    padding: 20px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    max-height: 700px;
-    overflow-y: auto;
+/* The driver careers chart component - fills container */
+.main-chart {
+    flex: 1 1 0;
+    min-width: 0;
 }
+
+/* Optional: Adjust card width to balance layout */
+.driver-card {
+    width: 280px; /* Slightly reduced for more chart space */
+    /* Keep all your existing driver-card styles */
+}
+
 
 .card-placeholder {
     color: #666;
@@ -102,4 +84,13 @@
     font-size: 13px;
     color: #555;
     line-height: 1.4;
+}
+
+.toggle-switch{
+    padding-top: 10px;
+    gap: 10px;
+}
+.toggle-switch label input{
+    
+    margin-right: 20px;
 }

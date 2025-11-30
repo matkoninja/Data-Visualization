@@ -36,6 +36,7 @@ app.layout = html.Div([
     
     html.Div([
         html.Div([
+            html.H3('Chart view:', className="driver-name"),
             dcc.RadioItems(
                 id='career-mode',
                 options=['start', 'end', 'both'],
