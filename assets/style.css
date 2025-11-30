@@ -1,0 +1,96 @@
+/* Main dashboard container - ensure full viewport width */
+.dashboard-container {
+    width: 100%;
+    max-width: none;
+    padding: 0;
+    margin: 0;
+    box-sizing: border-box;
+}
+
+/* Bottom section - full width with horizontal margins */
+.bottom-container {
+    display: flex;
+    gap: 20px;
+    width: 100%;
+    padding: 0 80px; /* Considerable left/right margins */
+    box-sizing: border-box;
+}
+
+/* Chart wrapper - takes remaining space */
+.chart-card-wrapper {
+    display: flex;
+    gap: 20px;
+    flex: 1 1 0;
+    width: 100%;
+    min-width: 0; /* Prevents flexbox overflow issues */
+}
+
+/* The driver careers chart component - fills container */
+.main-chart {
+    flex: 1 1 0;
+    min-width: 0;
+}
+
+/* Optional: Adjust card width to balance layout */
+.driver-card {
+    width: 280px; /* Slightly reduced for more chart space */
+    /* Keep all your existing driver-card styles */
+}
+
+
+.card-placeholder {
+    color: #666;
+    font-style: italic;
+    text-align: center;
+    padding-top: 50px;
+}
+
+.card-content {
+    font-family: Arial, sans-serif;
+}
+
+.driver-name {
+    margin-top: 0;
+    color: #333;
+    border-bottom: 2px solid #007bff;
+    padding-bottom: 10px;
+}
+
+.basic-info p,
+.stats-grid p {
+    margin: 8px 0;
+    font-size: 14px;
+}
+
+.stats-grid {
+    background: white;
+    padding: 12px;
+    border-radius: 4px;
+    margin: 15px 0;
+}
+
+.teams-section {
+    border-top: 1px solid #ddd;
+    padding-top: 15px;
+    margin-top: 15px;
+}
+
+.teams-label {
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.teams-list {
+    font-size: 13px;
+    color: #555;
+    line-height: 1.4;
+}
+
+.toggle-switch{
+    padding-top: 10px;
+    gap: 10px;
+}
+.toggle-switch label input{
+    
+    margin-right: 20px;
+}
