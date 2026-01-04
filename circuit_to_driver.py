@@ -17,10 +17,14 @@ data_dir = os.path.join(here, "dataset")
 showSimple = False
 max_nodes = 50
 
-# Read datasets used to build the Sankey
+# New switch to limit values for better fit
+showSmallDf = True
+valuesLimit = 100
+
+# Read datasets used to build the diagram
 circuits_df = pd.read_csv(os.path.join(data_dir, "circuits.csv"), low_memory=False)
 constructors_df = pd.read_csv(os.path.join(data_dir, "constructors.csv"), low_memory=False)
-drivers_df = pd.read_csv(os.path.join(data_dir, "drivers.csv"), low_memory=False)
+drivers_df = pd.read_csv(os.path.join(data_dir, "drivers.csv"), low_memory=False, nrows=1000)  # Limit rows for performance
 races_df = pd.read_csv(os.path.join(data_dir, "races.csv"), low_memory=False)
 results_df = pd.read_csv(os.path.join(data_dir, "results.csv"), low_memory=False, na_values=["\\N"])
 
@@ -73,7 +77,7 @@ constructors_count = len(constructors_labels)
 drivers_count = len(drivers_labels)
 
 """
-2. Offset node indices (in the Sankey diagram)
+2. Offset node indices (in the parallel diagram)
 """
 
 
@@ -84,34 +88,33 @@ offset_drivers = offset_constructors + drivers_count
 """
 3. create a mappings between dataframe IDs and their corresponding node indices
 """
-circuit_id_to_sankey_index = {}
+circuit_id_to_index = {}
 for position, circuitId in enumerate(circuits_df.get("circuitId", pd.Series())):
     if pd.notna(circuitId):
-        circuit_id_to_sankey_index[int(circuitId)] = offset_circuits + position
+        circuit_id_to_index[int(circuitId)] = offset_circuits + position
 
-constructor_id_to_sankey_index = {}
+constructor_id_to_index = {}
 for position, constructorId in enumerate(constructors_df.get("constructorId", pd.Series())):
     if pd.notna(constructorId):
-        constructor_id_to_sankey_index[int(constructorId)] = offset_constructors + position
+        constructor_id_to_index[int(constructorId)] = offset_constructors + position
 
-driver_id_to_sankey_index = {}
+driver_id_to_index = {}
 for position, driverId in enumerate(drivers_df.get("driverId", pd.Series())):
     if pd.notna(driverId):
-        driver_id_to_sankey_index[int(driverId)] = offset_drivers + position
+        driver_id_to_index[int(driverId)] = offset_drivers + position
 
 
 """
 ================================================================================
-                Building links between nodes
+                Building connections between categories
 
 1. circuits -> constructors
 2. constructors -> drivers
 ================================================================================
 """
 
-sources = []
-targets = []
-values = []
+# Prepare data for parallel categories diagram
+dimensions = []
 
 """ 
 1. circuits -> constructors 
@@ -124,20 +127,30 @@ circuit_constructor = circuit_constructor.dropna(subset=["circuitId", "construct
 circuit_constructor_counts = circuit_constructor.groupby(["circuitId", "constructorId"]).size().reset_index(name="count") # Groups by circuit-constructor pairs and counts occurrences (how many times each constructor raced at each circuit)
 # print(circuit_constructor_counts.head())
 
-# loop over circuit-constructor pair and their count
+# Create mapping for circuit names
+circuit_names = {}
+for _, row in circuits_df.iterrows():
+    circuit_names[int(row["circuitId"])] = row["name"]
+
+# Create mapping for constructor names
+constructor_names = {}
+for _, row in constructors_df.iterrows():
+    constructor_names[int(row["constructorId"])] = row["name"]
+
+# Prepare data for parallel categories diagram
+circuit_list = []
+constructor_list = []
+count_list = []
+
 for _, row in circuit_constructor_counts.iterrows():
     circuit_id = int(row["circuitId"])
     constructor_id = int(row["constructorId"])
-    circuit_constructor_count = int(row["count"])
-    # Look up the node indices in the Sankey for each circuit and constructor
-    src = circuit_id_to_sankey_index.get(circuit_id)
-    tgt = constructor_id_to_sankey_index.get(constructor_id)
-    if ((src is not None) and (tgt is not None)):
-      # Add the source node index, target node index, and count value to the respective arrays
-      sources.append(src)
-      targets.append(tgt)
-      values.append(circuit_constructor_count)
-
+    count = int(row["count"])
+    
+    if circuit_id in circuit_names and constructor_id in constructor_names:
+        circuit_list.append(circuit_names[circuit_id])
+        constructor_list.append(constructor_names[constructor_id])
+        count_list.append(count)
 
 """ 
 2. constructors -> drivers
@@ -147,74 +160,118 @@ constructor_driver = results_df[["constructorId", "driverId"]].dropna().astype({
 constructor_driver_counts = constructor_driver.groupby(["constructorId", "driverId"]).size().reset_index(name="count") # Groups by constructor-driver pairs and counts occurrences (how many times each driver raced for each constructor)
 print(constructor_driver_counts.head())
 
-# loop over constructor-driver pair and their count
+# Create mapping for driver names
+driver_names = {}
+for _, row in drivers_df.iterrows():
+    if pd.notna(row["driverId"]):
+        driver_id = int(row["driverId"])
+        if "forename" in row and "surname" in row:
+            driver_names[driver_id] = f"{row['forename']} {row['surname']}"
+        else:
+            driver_names[driver_id] = str(driver_id)
+
+# Extend data for parallel categories diagram
+constructor_list_extended = []
+driver_list = []
+count_list_extended = []
+
+# For simplicity, we'll create a separate diagram for constructors -> drivers
+# In a full implementation, we would link these together
+
 for _, row in constructor_driver_counts.iterrows():
     constructor_id = int(row["constructorId"])
     driver_id = int(row["driverId"])
-    constructor_driver_count = int(row["count"])
-    # Look up the node indices in the Sankey for each circuit and constructor
-    src = constructor_id_to_sankey_index.get(constructor_id)
-    tgt = driver_id_to_sankey_index.get(driver_id)
-    if ((src is not None) and (tgt is not None)):
-      # Add the source node index, target node index, and count value to the respective arrays
-      sources.append(src)
-      targets.append(tgt)
-      values.append(circuit_constructor_count)
-
+    count = int(row["count"])
+    
+    if constructor_id in constructor_names and driver_id in driver_names:
+        constructor_list_extended.append(constructor_names[constructor_id])
+        driver_list.append(driver_names[driver_id])
+        count_list_extended.append(count)
 
 """
 ================================================================================
-                Sankey visualization
+                Parallel Categories visualization
 
-Preparation of `node` and `link` dicts and calling `go.Sankey`.
-If `showSimple` is True -> keep only the first `max_nodes` encountered in links.
+Preparation of dimensions for `go.Parcats`.
 ================================================================================
 """
 
-# Combined labels and layout positions
-labels = circuits_labels + constructors_labels + drivers_labels
+# Create a combined dataset that links all three categories
+# We need to find connections that go from circuits -> constructors -> drivers
+# But only for race winners (position = 1)
 
-"""
-1. Node Positioning
-"""
-# x positions: circuits=0, constructors=0.5, drivers=1.0
-xs = [0.0] * circuits_count + [0.5] * constructors_count + [1.0] * drivers_count
+# First, let's create a combined dataframe that links races to circuits, constructors, and drivers
+# But only for winners (position = 1)
+race_circuit = races_df[["raceId", "circuitId"]].dropna()
+race_constructor_driver = results_df[["raceId", "constructorId", "driverId", "position"]].dropna().astype({
+    "raceId": int, 
+    "constructorId": int, 
+    "driverId": int,
+    "position": int
+})
 
-# y positions: distribute nodes vertically within each column
-def even_ys(count):
-    if count <= 1:
-        return [0.5]
-    return [i / (count - 1) for i in range(count)]
+# Filter only for race winners (position = 1)
+race_constructor_driver_winners = race_constructor_driver[race_constructor_driver["position"] == 1]
 
-ys = even_ys(circuits_count) + even_ys(constructors_count) + even_ys(drivers_count)
+# Merge to get circuit-constructor-driver relationships through races for winners only
+circuit_constructor_driver = pd.merge(race_circuit, race_constructor_driver_winners, on="raceId", how="inner")
+circuit_constructor_driver = circuit_constructor_driver.dropna(subset=["circuitId", "constructorId", "driverId"]).astype({
+    "circuitId": int, 
+    "constructorId": int, 
+    "driverId": int
+})
 
-"""
-2. Elements of the Sankey
-"""
-# Nodes
-colors = (["#1f77b4"] * circuits_count) + (["#ff7f0e"] * constructors_count) + (["#2ca02c"] * drivers_count)
+# Count occurrences of each circuit-constructor-driver combination (winners only)
+circuit_constructor_driver_counts = circuit_constructor_driver.groupby(["circuitId", "constructorId", "driverId"]).size().reset_index(name="count")
 
-node_dict = dict(
-  pad=15, 
-  thickness=20, 
-  line=dict(color="black", width=0.5), 
-  label=labels, 
-  color=colors,
-  align='left')
+# Prepare lists for the combined diagram
+combined_circuit_list = []
+combined_constructor_list = []
+combined_driver_list = []
+combined_count_list = []
 
-# Links
-link_dict = dict(
-  source=sources, 
-  target=targets, 
-  value=values)
+# Populate the lists with names instead of IDs
+for _, row in circuit_constructor_driver_counts.iterrows():
+    circuit_id = int(row["circuitId"])
+    constructor_id = int(row["constructorId"])
+    driver_id = int(row["driverId"])
+    count = int(row["count"])
+    
+    # Only add to lists if all IDs exist in our mappings
+    if (circuit_id in circuit_names and 
+        constructor_id in constructor_names and 
+        driver_id in driver_names):
+        combined_circuit_list.append(circuit_names[circuit_id])
+        combined_constructor_list.append(constructor_names[constructor_id])
+        combined_driver_list.append(driver_names[driver_id])
+        combined_count_list.append(count)
 
-"""
-3. rendering the figure
-"""
-fig = go.Figure(data=[go.Sankey(
-  node=node_dict, 
-  link=link_dict
-  )])
+# Apply limit if showSmallDf is True
+if showSmallDf:
+    # Limit the number of entries for each category
+    combined_circuit_list = combined_circuit_list[:valuesLimit]
+    combined_constructor_list = combined_constructor_list[:valuesLimit]
+    combined_driver_list = combined_driver_list[:valuesLimit]
+    combined_count_list = combined_count_list[:valuesLimit]
 
-fig.update_layout(title_text="Circuits → Constructors → Drivers Sankey", font_size=10)
-fig.show()
+# Create the combined parallel categories diagram with all three categories
+# Using the basic structure with counts and curved lines as requested
+fig_combined = go.Figure(go.Parcats(
+    dimensions=[
+        {'label': 'Circuits', 'values': combined_circuit_list},
+        {'label': 'Constructors', 'values': combined_constructor_list},
+        {'label': 'Drivers', 'values': combined_driver_list}
+    ],
+    counts=combined_count_list,
+    line={'shape': 'hspline'}  # Add curved lines between nodes
+))
+
+fig_combined.update_layout(
+    title_text="Circuits → Constructors → Drivers Combined Parallel Categories Diagram (Winners Only)", 
+    font_size=12,
+    height=None,  # Reduced height since we're limiting values
+    width=None,   # Reduced width since we're limiting values
+    margin=dict(t=50, b=50, l=100, r=100)  # Adjusted margins
+)
+
+fig_combined.show()
