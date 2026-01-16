@@ -70,13 +70,13 @@ if "surname" in drivers_df.columns:
 else:
     surnames = pd.Series([""] * len(drivers_df))
 
-# Format driver names as "N. Surname"
+# Format driver names as "Surname, N."
 drivers_labels = []
 for _, row in drivers_df.iterrows():
     if "forename" in row and "surname" in row and pd.notna(row["forename"]) and pd.notna(row["surname"]):
-        # Format as "N. Surname"
+        # Format as "Surname, N."
         forename_initial = row['forename'][0] if row['forename'] else ""
-        driver_name = f"{forename_initial}. {row['surname']}" if forename_initial else row['surname']
+        driver_name = f"{row['surname']}, {forename_initial}." if forename_initial else row['surname']
         drivers_labels.append(driver_name)
     else:
         # Fallback if data is missing
@@ -185,9 +185,9 @@ for _, row in drivers_df.iterrows():
     if pd.notna(row["driverId"]):
         driver_id = int(row["driverId"])
         if "forename" in row and "surname" in row:
-            # Format as "N. Surname"
+            # Format as "Surname, N."
             forename_initial = row['forename'][0] if row['forename'] else ""
-            driver_names[driver_id] = f"{forename_initial}. {row['surname']}" if forename_initial else row['surname']
+            driver_names[driver_id] = f"{row['surname']}, {forename_initial}." if forename_initial else row['surname']
         else:
             driver_names[driver_id] = str(driver_id)
 
@@ -275,14 +275,26 @@ if showSmallDf:
     combined_driver_list = combined_driver_list[:valuesLimit]
     combined_count_list = combined_count_list[:valuesLimit]
 
+# Create dimensions using go.parcats.Dimension structure
+circuit_dim = go.parcats.Dimension(
+    values=combined_circuit_list,
+    
+    label="Circuits"
+)
+
+constructor_dim = go.parcats.Dimension(
+    values=combined_constructor_list,
+    label="Constructors"
+)
+
+driver_dim = go.parcats.Dimension(
+    values=combined_driver_list,categoryorder='category ascending',
+    label="Drivers"
+)
+
 # Create the combined parallel categories diagram with all three categories
-# Using the basic structure with counts and curved lines as requested
 fig_combined = go.Figure(go.Parcats(
-    dimensions=[
-        {'label': 'Circuits', 'values': combined_circuit_list},
-        {'label': 'Constructors', 'values': combined_constructor_list},
-        {'label': 'Drivers', 'values': combined_driver_list}
-    ],
+    dimensions=[circuit_dim, constructor_dim, driver_dim],
     counts=combined_count_list,
     line={'shape': 'hspline'}  # Add curved lines between nodes
 ))
