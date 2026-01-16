@@ -1,7 +1,9 @@
 from dash import html
+import numpy as np
 import pandas as pd
 import plotly.express as px
 from country import alpha2_codes
+from math import ceil, floor
 
 
 def get_circuits_info(circuits, races):
@@ -42,10 +44,16 @@ def get_circuits_info(circuits, races):
     return circuits_with_counts
 
 
-def format_lap_time(ms):
+def format_lap_time_ms(ms):
     minutes = ms // 60000
     seconds = (ms % 60000) / 1000
     return f"{minutes}:{seconds:06.3f}"
+
+
+def format_lap_time_s(ms):
+    minutes = ms // 60000
+    seconds = (ms % 60000) // 1000
+    return f"{minutes}:{seconds:02d}"
 
 
 def get_fastest_lap_times(circuits: pd.DataFrame,
@@ -78,7 +86,7 @@ def get_fastest_lap_times(circuits: pd.DataFrame,
 
     fastest_per_circuit_year["fastest_lap"] = \
         fastest_per_circuit_year["fastest_milliseconds"].apply(
-            format_lap_time
+            format_lap_time_ms
     )
 
     return fastest_per_circuit_year
@@ -131,23 +139,51 @@ def draw_fastest_lap_times_line_chart(clickData):
 
     circuit_lap_times = fastest_lap_times[fastest_lap_times["circuitRef"]
                                           == selected_circuit_["circuitRef"]]
+    times_with_format = circuit_lap_times[
+        ["fastest_lap", "fastest_milliseconds"]
+    ].sort_values(
+        by="fastest_milliseconds",
+    )
     fig = px.line(
         circuit_lap_times,
         x="year",
-        y="fastest_lap",
+        y="fastest_milliseconds",
+        # y="fastest_lap",
         title=f"Fastest Lap Times at {selected_circuit_['name']}",
         labels={
             "year": "Year",
-            "fastest_lap": "Fastest Lap Time"
+            "fastest_milliseconds": "Fastest Lap Time"
         },
-        range_x=[1950, 2024],
+        # range_x=[1950, 2024],
         markers=True,
-        category_orders={"fastest_lap": circuit_lap_times[
-            ["fastest_lap", "fastest_milliseconds"]
-        ].sort_values(
-            by="fastest_milliseconds",
-        )["fastest_lap"].values.tolist()},
+        category_orders={
+            "fastest_lap": times_with_format["fastest_lap"].values.tolist()
+        },
     )
+
+    # fig.update_yaxes(autorange="reversed")
+
+    min_time = floor(
+        circuit_lap_times["fastest_milliseconds"].min() / 1000) * 1000
+    max_time = ceil(
+        circuit_lap_times["fastest_milliseconds"].max() / 1000) * 1000
+    ticks_vals = np.arange(min_time, max_time + 1, 1000)
+    ticks_texts = list(map(format_lap_time_s, ticks_vals))
+    print(ticks_vals)
+    print(ticks_texts)
+
+    fig.update_layout(
+        yaxis=dict(
+            tickmode="array",
+            tickvals=ticks_vals,
+            ticktext=ticks_texts,
+        )
+    )
+
+    # print(fig.layout.yaxis)
+    # print(times_with_format.head())
+    print(min_time, max_time)
+
     return fig
 
 
