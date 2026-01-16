@@ -2,6 +2,7 @@ from dash import html
 import pandas as pd
 import plotly.graph_objects as go
 import os
+import textwrap
 
 """
 ================================================================================
@@ -68,7 +69,18 @@ if "surname" in drivers_df.columns:
     surnames = drivers_df["surname"]
 else:
     surnames = pd.Series([""] * len(drivers_df))
-drivers_labels = (forenames.fillna("") + " " + surnames.fillna("")).str.strip().replace(r"\s+", " ", regex=True).tolist()
+
+# Format driver names as "N. Surname"
+drivers_labels = []
+for _, row in drivers_df.iterrows():
+    if "forename" in row and "surname" in row and pd.notna(row["forename"]) and pd.notna(row["surname"]):
+        # Format as "N. Surname"
+        forename_initial = row['forename'][0] if row['forename'] else ""
+        driver_name = f"{forename_initial}. {row['surname']}" if forename_initial else row['surname']
+        drivers_labels.append(driver_name)
+    else:
+        # Fallback if data is missing
+        drivers_labels.append("Unknown Driver")
 # print(circuits_labels, constructors_labels, drivers_labels)
 
 # count of circuits, constructors and drivers
@@ -127,10 +139,17 @@ circuit_constructor = circuit_constructor.dropna(subset=["circuitId", "construct
 circuit_constructor_counts = circuit_constructor.groupby(["circuitId", "constructorId"]).size().reset_index(name="count") # Groups by circuit-constructor pairs and counts occurrences (how many times each constructor raced at each circuit)
 # print(circuit_constructor_counts.head())
 
-# Create mapping for circuit names
+# Create mapping for circuit names with text wrapping
+def wrap_text(text, width=15):
+    """Wrap text to specified width, breaking on spaces when possible"""
+    if pd.isna(text) or not isinstance(text, str):
+        return str(text)
+    # Use HTML line breaks for Plotly
+    return '<br>'.join(textwrap.wrap(text, width=width))
+
 circuit_names = {}
 for _, row in circuits_df.iterrows():
-    circuit_names[int(row["circuitId"])] = row["name"]
+    circuit_names[int(row["circuitId"])] = wrap_text(row["name"], width=15)
 
 # Create mapping for constructor names
 constructor_names = {}
@@ -166,7 +185,9 @@ for _, row in drivers_df.iterrows():
     if pd.notna(row["driverId"]):
         driver_id = int(row["driverId"])
         if "forename" in row and "surname" in row:
-            driver_names[driver_id] = f"{row['forename']} {row['surname']}"
+            # Format as "N. Surname"
+            forename_initial = row['forename'][0] if row['forename'] else ""
+            driver_names[driver_id] = f"{forename_initial}. {row['surname']}" if forename_initial else row['surname']
         else:
             driver_names[driver_id] = str(driver_id)
 
@@ -271,7 +292,7 @@ fig_combined.update_layout(
     font_size=12,
     height=None,  # Reduced height since we're limiting values
     width=None,   # Reduced width since we're limiting values
-    margin=dict(t=50, b=50, l=100, r=100)  # Adjusted margins
+    margin=dict(t=50, b=50, l=50, r=50)  # Adjusted margins
 )
 
 fig_combined.show()
