@@ -268,7 +268,8 @@ FILTER_DROPDOWNS = {
         placeholder="Select Circuits",
         closeOnSelect=False,
         style={
-            "flex": "1"
+            "flex": "1",
+            "padding":  "10px"
         }
     ),
     "Constructors": dcc.Dropdown(
@@ -278,7 +279,8 @@ FILTER_DROPDOWNS = {
         placeholder="Select Constructors",
         closeOnSelect=False,
         style={
-            "flex": "1"
+            "flex": "1",
+            "padding":  "10px"
         }
     ),
     "Drivers": dcc.Dropdown(
@@ -288,7 +290,8 @@ FILTER_DROPDOWNS = {
         placeholder="Select Drivers",
         closeOnSelect=False,
         style={
-            "flex": "1"
+            "flex": "1",
+            "padding":  "10px"
         }
     )
 }
@@ -306,16 +309,37 @@ app.layout = html.Div([
         }
     ),
     
-    dcc.Checklist(
-        id="limit-50-toggle",
-        options=[{"label": " Select max 50 items", "value": "limit"}],
-        value=[],
-        style={"marginTop": "10px"}
+    html.Div(
+        [
+            html.Span("Maximum number of items per attribute:", style={"margin-right": "15px"}),
+            dcc.RadioItems(
+                id="limit-items-toggle",
+                options=[
+                    {"label": "all items", "value": 0},
+                    {"label": "50", "value": 50},
+                    {"label": "25", "value": 25},
+                    {"label": "10", "value": 10},
+                    {"label": "5", "value": 5}
+                ],
+                value=0,  # Default to all items
+                inline=True,
+                labelStyle={"padding": "5px"},
+                inputStyle={"margin-right": "5px"}
+            )
+        ], 
+        style={
+            "display": "flex", 
+            "align-items": "center", 
+            "margin": "10px"
+        }
     ),
     
     dcc.Graph(
         id="parcats-graph",
-        style={"height": "60vw"}
+        style={
+            "height": "60vw", 
+            "margin": "10px"
+        }
     )
 ])
 
@@ -332,10 +356,10 @@ df_plot["Driver"] = df_plot["driverId"].map(driver_names)
     Input("circuit-filter", "value"),
     Input("constructor-filter", "value"),
     Input("driver-filter", "value"),
-    Input("limit-50-toggle", "value"),
+    Input("limit-items-toggle", "value"),
 )
 
-def update_parcats(selected_circuits, selected_constructors, selected_drivers, limit_toggle):
+def update_parcats(selected_circuits, selected_constructors, selected_drivers, limit_value):
 
     dff = df_plot.copy()
     
@@ -348,11 +372,11 @@ def update_parcats(selected_circuits, selected_constructors, selected_drivers, l
     if selected_drivers:
         dff = dff[dff["Driver"].isin(selected_drivers)]
 
-    if "limit" in limit_toggle:
-        # Limit to top 50 items per category
-        top_circuits = dff.groupby("Circuit")["count"].sum().nlargest(50).index
-        top_constructors = dff.groupby("Constructor")["count"].sum().nlargest(50).index
-        top_drivers = dff.groupby("Driver")["count"].sum().nlargest(50).index
+    if limit_value:
+        # Limit to top N items per category based on radio selection
+        top_circuits = dff.groupby("Circuit")["count"].sum().nlargest(limit_value).index
+        top_constructors = dff.groupby("Constructor")["count"].sum().nlargest(limit_value).index
+        top_drivers = dff.groupby("Driver")["count"].sum().nlargest(limit_value).index
 
         dff = dff[
             dff["Circuit"].isin(top_circuits) &
