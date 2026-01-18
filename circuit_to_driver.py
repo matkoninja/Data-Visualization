@@ -1,4 +1,5 @@
-from dash import html
+import dash
+from dash import Dash, html, dcc, Input, Output
 import pandas as pd
 import plotly.graph_objects as go
 import os
@@ -245,66 +246,145 @@ circuit_constructor_driver = circuit_constructor_driver.dropna(subset=["circuitI
 # Count occurrences of each circuit-constructor-driver combination (winners only)
 circuit_constructor_driver_counts = circuit_constructor_driver.groupby(["circuitId", "constructorId", "driverId"]).size().reset_index(name="count")
 
-# Prepare lists for the combined diagram
-combined_circuit_list = []
-combined_constructor_list = []
-combined_driver_list = []
-combined_count_list = []
 
-# Populate the lists with names instead of IDs
-for _, row in circuit_constructor_driver_counts.iterrows():
-    circuit_id = int(row["circuitId"])
-    constructor_id = int(row["constructorId"])
-    driver_id = int(row["driverId"])
-    count = int(row["count"])
+"""
+================================================================================
+                Dash App
+
+Layout and callbacks
+================================================================================
+"""
+
+# Create Dash app
+app = dash.Dash(__name__)
+
+ATTRIBUTE_ORDER = ["Circuits", "Constructors", "Drivers"]
+
+FILTER_DROPDOWNS = {
+    "Circuits": dcc.Dropdown(
+        id="circuit-filter",
+        options=[{"label": v, "value": v} for v in sorted(circuit_names.values())],
+        multi=True,
+        placeholder="Select Circuits",
+        closeOnSelect=False,
+        style={
+            "flex": "1"
+        }
+    ),
+    "Constructors": dcc.Dropdown(
+        id="constructor-filter",
+        options=[{"label": v, "value": v} for v in sorted(constructor_names.values())],
+        multi=True,
+        placeholder="Select Constructors",
+        closeOnSelect=False,
+        style={
+            "flex": "1"
+        }
+    ),
+    "Drivers": dcc.Dropdown(
+        id="driver-filter",
+        options=[{"label": v, "value": v} for v in sorted(driver_names.values())],
+        multi=True,
+        placeholder="Select Drivers",
+        closeOnSelect=False,
+        style={
+            "flex": "1"
+        }
+    )
+}
+
+# Layout
+app.layout = html.Div([
+    html.H2("Circuits → Constructors → Drivers (Winners Only)"),
+
+    html.Div(
+        id="filter-row",
+        children=[FILTER_DROPDOWNS[attr] for attr in ATTRIBUTE_ORDER],
+        style={
+            "display": "flex",
+            "justify-content": "space-between"
+        }
+    ),
     
-    # Only add to lists if all IDs exist in our mappings
-    if (circuit_id in circuit_names and 
-        constructor_id in constructor_names and 
-        driver_id in driver_names):
-        combined_circuit_list.append(circuit_names[circuit_id])
-        combined_constructor_list.append(constructor_names[constructor_id])
-        combined_driver_list.append(driver_names[driver_id])
-        combined_count_list.append(count)
-
-# Apply limit if showSmallDf is True
-if showSmallDf:
-    # Limit the number of entries for each category
-    combined_circuit_list = combined_circuit_list[:valuesLimit]
-    combined_constructor_list = combined_constructor_list[:valuesLimit]
-    combined_driver_list = combined_driver_list[:valuesLimit]
-    combined_count_list = combined_count_list[:valuesLimit]
-
-# Create dimensions using go.parcats.Dimension structure
-circuit_dim = go.parcats.Dimension(
-    values=combined_circuit_list,
+    dcc.Checklist(
+        id="limit-50-toggle",
+        options=[{"label": " Select max 50 items", "value": "limit"}],
+        value=[],
+        style={"marginTop": "10px"}
+    ),
     
-    label="Circuits"
+    dcc.Graph(
+        id="parcats-graph",
+        style={"height": "60vw"}
+    )
+])
+
+df_plot = circuit_constructor_driver_counts.copy()
+
+df_plot["Circuit"] = df_plot["circuitId"].map(circuit_names)
+df_plot["Constructor"] = df_plot["constructorId"].map(constructor_names)
+df_plot["Driver"] = df_plot["driverId"].map(driver_names)
+
+
+# callbacks
+@app.callback(
+    Output("parcats-graph", "figure"),
+    Input("circuit-filter", "value"),
+    Input("constructor-filter", "value"),
+    Input("driver-filter", "value"),
+    Input("limit-50-toggle", "value"),
 )
 
-constructor_dim = go.parcats.Dimension(
-    values=combined_constructor_list,
-    label="Constructors"
-)
+def update_parcats(selected_circuits, selected_constructors, selected_drivers, limit_toggle):
 
-driver_dim = go.parcats.Dimension(
-    values=combined_driver_list,categoryorder='category ascending',
-    label="Drivers"
-)
+    dff = df_plot.copy()
+    
+    if selected_circuits:
+        dff = dff[dff["Circuit"].isin(selected_circuits)]
 
-# Create the combined parallel categories diagram with all three categories
-fig_combined = go.Figure(go.Parcats(
-    dimensions=[circuit_dim, constructor_dim, driver_dim],
-    counts=combined_count_list,
-    line={'shape': 'hspline'}  # Add curved lines between nodes
-))
+    if selected_constructors:
+        dff = dff[dff["Constructor"].isin(selected_constructors)]
 
-fig_combined.update_layout(
-    title_text="Circuits → Constructors → Drivers Combined Parallel Categories Diagram (Winners Only)", 
-    font_size=12,
-    height=None,  # Reduced height since we're limiting values
-    width=None,   # Reduced width since we're limiting values
-    margin=dict(t=50, b=50, l=50, r=50)  # Adjusted margins
-)
+    if selected_drivers:
+        dff = dff[dff["Driver"].isin(selected_drivers)]
 
-fig_combined.show()
+    if "limit" in limit_toggle:
+        # Limit to top 50 items per category
+        top_circuits = dff.groupby("Circuit")["count"].sum().nlargest(50).index
+        top_constructors = dff.groupby("Constructor")["count"].sum().nlargest(50).index
+        top_drivers = dff.groupby("Driver")["count"].sum().nlargest(50).index
+
+        dff = dff[
+            dff["Circuit"].isin(top_circuits) &
+            dff["Constructor"].isin(top_constructors) &
+            dff["Driver"].isin(top_drivers)
+        ]
+
+    dimensions = []
+    for attr in ATTRIBUTE_ORDER:
+        dimensions.append({
+            "label": attr,
+            "values": dff[attr[:-1]]  # Circuits → Circuit, etc.
+        })
+    
+    fig = go.Figure(go.Parcats(
+        dimensions=dimensions,
+        counts=dff["count"],
+        line={"shape": "hspline"}
+    ))
+
+    fig.update_traces(
+        labelfont=dict(size=13),
+        tickfont=dict(size=11)
+    )
+
+    fig.update_layout(
+        font_size=12,
+        margin=dict(t=50, l=50, r=50, b=50)
+    )
+    return fig
+
+
+# run the App
+if __name__ == "__main__":
+    app.run(debug=True)
