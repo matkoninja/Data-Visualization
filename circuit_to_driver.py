@@ -26,7 +26,7 @@ valuesLimit = 100
 # Read datasets used to build the diagram
 circuits_df = pd.read_csv(os.path.join(data_dir, "circuits.csv"), low_memory=False)
 constructors_df = pd.read_csv(os.path.join(data_dir, "constructors.csv"), low_memory=False)
-drivers_df = pd.read_csv(os.path.join(data_dir, "drivers.csv"), low_memory=False, nrows=1000)  # Limit rows for performance
+drivers_df = pd.read_csv(os.path.join(data_dir, "drivers.csv"), low_memory=False)
 races_df = pd.read_csv(os.path.join(data_dir, "races.csv"), low_memory=False)
 results_df = pd.read_csv(os.path.join(data_dir, "results.csv"), low_memory=False, na_values=["\\N"])
 
@@ -43,79 +43,6 @@ results_df = pd.read_csv(os.path.join(data_dir, "results.csv"), low_memory=False
 # print(results_df.head())
 
 
-"""
-================================================================================
-                Variable preprocessing
-                
-1. Labels + Labels count
-2. Node index offsets
-3. Indices mappings
-================================================================================
-"""
-
-"""
-1. Labels for each group and their count
-"""
-# circuits
-circuits_labels = circuits_df["name"].fillna(circuits_df.get("circuitRef", "")).astype(str).tolist()
-# constructors
-constructors_labels = constructors_df["name"].fillna(constructors_df.get("constructorRef", "")).astype(str).tolist()
-# drivers (if columns are missing, use empty Series of correct length)
-if "forename" in drivers_df.columns:
-    forenames = drivers_df["forename"]
-else:
-    forenames = pd.Series([""] * len(drivers_df))
-
-if "surname" in drivers_df.columns:
-    surnames = drivers_df["surname"]
-else:
-    surnames = pd.Series([""] * len(drivers_df))
-
-# Format driver names as "Surname, N."
-drivers_labels = []
-for _, row in drivers_df.iterrows():
-    if "forename" in row and "surname" in row and pd.notna(row["forename"]) and pd.notna(row["surname"]):
-        # Format as "Surname, N."
-        forename_initial = row['forename'][0] if row['forename'] else ""
-        driver_name = f"{row['surname']}, {forename_initial}." if forename_initial else row['surname']
-        drivers_labels.append(driver_name)
-    else:
-        # Fallback if data is missing
-        drivers_labels.append("Unknown Driver")
-# print(circuits_labels, constructors_labels, drivers_labels)
-
-# count of circuits, constructors and drivers
-circuits_count = len(circuits_labels)
-constructors_count = len(constructors_labels)
-drivers_count = len(drivers_labels)
-
-"""
-2. Offset node indices (in the parallel diagram)
-"""
-
-
-offset_circuits = 0
-offset_constructors = circuits_count
-offset_drivers = offset_constructors + drivers_count
-
-"""
-3. create a mappings between dataframe IDs and their corresponding node indices
-"""
-circuit_id_to_index = {}
-for position, circuitId in enumerate(circuits_df.get("circuitId", pd.Series())):
-    if pd.notna(circuitId):
-        circuit_id_to_index[int(circuitId)] = offset_circuits + position
-
-constructor_id_to_index = {}
-for position, constructorId in enumerate(constructors_df.get("constructorId", pd.Series())):
-    if pd.notna(constructorId):
-        constructor_id_to_index[int(constructorId)] = offset_constructors + position
-
-driver_id_to_index = {}
-for position, driverId in enumerate(drivers_df.get("driverId", pd.Series())):
-    if pd.notna(driverId):
-        driver_id_to_index[int(driverId)] = offset_drivers + position
-
 
 """
 ================================================================================
@@ -129,60 +56,55 @@ for position, driverId in enumerate(drivers_df.get("driverId", pd.Series())):
 # Prepare data for parallel categories diagram
 dimensions = []
 
-""" 
-1. circuits -> constructors 
-"""
-# prepare dataframe (circuit_constructor_values):
-race_circuit = races_df[["raceId", "circuitId"]].dropna() # race-circuit mappings from races_df
-race_constructor = results_df[["raceId", "constructorId"]].dropna() # race-constructor mappings from results_df
-circuit_constructor = pd.merge(race_constructor, race_circuit, on="raceId", how="left") # Joins these two datasets on raceId to connect circuits directly to constructors
-circuit_constructor = circuit_constructor.dropna(subset=["circuitId", "constructorId"]).astype({"circuitId": int, "constructorId": int})
-circuit_constructor_counts = circuit_constructor.groupby(["circuitId", "constructorId"]).size().reset_index(name="count") # Groups by circuit-constructor pairs and counts occurrences (how many times each constructor raced at each circuit)
-# print(circuit_constructor_counts.head())
+# Use only Finalists
+results_finalists_df = results_df[results_df["position"] == 1]
 
-# Create mapping for circuit names with text wrapping
+# Prepare dataframe for circuit-constructor-driver relationships
+race_circuit = races_df[["raceId", "circuitId"]].dropna()
+race_constructor_driver = results_finalists_df[["raceId", "constructorId", "driverId"]].dropna().astype({
+    "raceId": int,
+    "constructorId": int,
+    "driverId": int
+})
+
+# Merge to get circuit-constructor-driver relationships through races
+circuit_constructor_driver = pd.merge(race_constructor_driver, race_circuit,  on="raceId", how="inner")
+circuit_constructor_driver = circuit_constructor_driver.dropna(subset=["circuitId", "constructorId", "driverId"]).astype({
+    "circuitId": int,
+    "constructorId": int,
+    "driverId": int
+})
+# print(circuit_constructor_driver.head())
+
+# Count occurrences of each circuit-constructor-driver combination
+circuit_constructor_driver_counts = circuit_constructor_driver.groupby(["circuitId", "constructorId", "driverId"]).size().reset_index(name="count")
+# print(circuit_constructor_driver_counts.head())
+# print("dgdfgdfgdfgdfg")
+
+
+# ==========
+
+# Create mapping for circuit names
 def wrap_text(text, width=15):
     """Wrap text to specified width, breaking on spaces when possible"""
     if pd.isna(text) or not isinstance(text, str):
         return str(text)
-    # Use HTML line breaks for Plotly
-    return '<br>'.join(textwrap.wrap(text, width=width))
+    return '<br>'.join(textwrap.wrap(text, width=width)) # Use HTML line breaks for Plotly
 
 circuit_names = {}
-for _, row in circuits_df.iterrows():
+circuit_names_for_dropdown = {}
+for _, row in circuits_df[circuits_df["circuitId"].isin(circuit_constructor_driver_counts["circuitId"])].iterrows():
     circuit_names[int(row["circuitId"])] = wrap_text(row["name"], width=15)
-
+    circuit_names_for_dropdown[int(row["circuitId"])] = row["name"]
+    
 # Create mapping for constructor names
 constructor_names = {}
-for _, row in constructors_df.iterrows():
+for _, row in constructors_df[constructors_df["constructorId"].isin(circuit_constructor_driver_counts["constructorId"])].iterrows():
     constructor_names[int(row["constructorId"])] = row["name"]
-
-# Prepare data for parallel categories diagram
-circuit_list = []
-constructor_list = []
-count_list = []
-
-for _, row in circuit_constructor_counts.iterrows():
-    circuit_id = int(row["circuitId"])
-    constructor_id = int(row["constructorId"])
-    count = int(row["count"])
-    
-    if circuit_id in circuit_names and constructor_id in constructor_names:
-        circuit_list.append(circuit_names[circuit_id])
-        constructor_list.append(constructor_names[constructor_id])
-        count_list.append(count)
-
-""" 
-2. constructors -> drivers
-"""
-# prepare dataframe ()
-constructor_driver = results_df[["constructorId", "driverId"]].dropna().astype({"constructorId": int, "driverId": int}) # Extracts constructor-driver pairs directly from results_df
-constructor_driver_counts = constructor_driver.groupby(["constructorId", "driverId"]).size().reset_index(name="count") # Groups by constructor-driver pairs and counts occurrences (how many times each driver raced for each constructor)
-print(constructor_driver_counts.head())
 
 # Create mapping for driver names
 driver_names = {}
-for _, row in drivers_df.iterrows():
+for _, row in drivers_df[drivers_df["driverId"].isin(circuit_constructor_driver_counts["driverId"])].iterrows():
     if pd.notna(row["driverId"]):
         driver_id = int(row["driverId"])
         if "forename" in row and "surname" in row:
@@ -192,59 +114,6 @@ for _, row in drivers_df.iterrows():
         else:
             driver_names[driver_id] = str(driver_id)
 
-# Extend data for parallel categories diagram
-constructor_list_extended = []
-driver_list = []
-count_list_extended = []
-
-# For simplicity, we'll create a separate diagram for constructors -> drivers
-# In a full implementation, we would link these together
-
-for _, row in constructor_driver_counts.iterrows():
-    constructor_id = int(row["constructorId"])
-    driver_id = int(row["driverId"])
-    count = int(row["count"])
-    
-    if constructor_id in constructor_names and driver_id in driver_names:
-        constructor_list_extended.append(constructor_names[constructor_id])
-        driver_list.append(driver_names[driver_id])
-        count_list_extended.append(count)
-
-"""
-================================================================================
-                Parallel Categories visualization
-
-Preparation of dimensions for `go.Parcats`.
-================================================================================
-"""
-
-# Create a combined dataset that links all three categories
-# We need to find connections that go from circuits -> constructors -> drivers
-# But only for race winners (position = 1)
-
-# First, let's create a combined dataframe that links races to circuits, constructors, and drivers
-# But only for winners (position = 1)
-race_circuit = races_df[["raceId", "circuitId"]].dropna()
-race_constructor_driver = results_df[["raceId", "constructorId", "driverId", "position"]].dropna().astype({
-    "raceId": int, 
-    "constructorId": int, 
-    "driverId": int,
-    "position": int
-})
-
-# Filter only for race winners (position = 1)
-race_constructor_driver_winners = race_constructor_driver[race_constructor_driver["position"] == 1]
-
-# Merge to get circuit-constructor-driver relationships through races for winners only
-circuit_constructor_driver = pd.merge(race_circuit, race_constructor_driver_winners, on="raceId", how="inner")
-circuit_constructor_driver = circuit_constructor_driver.dropna(subset=["circuitId", "constructorId", "driverId"]).astype({
-    "circuitId": int, 
-    "constructorId": int, 
-    "driverId": int
-})
-
-# Count occurrences of each circuit-constructor-driver combination (winners only)
-circuit_constructor_driver_counts = circuit_constructor_driver.groupby(["circuitId", "constructorId", "driverId"]).size().reset_index(name="count")
 
 
 """
@@ -263,7 +132,7 @@ ATTRIBUTE_ORDER = ["Circuits", "Constructors", "Drivers"]
 FILTER_DROPDOWNS = {
     "Circuits": dcc.Dropdown(
         id="circuit-filter",
-        options=[{"label": v, "value": v} for v in sorted(circuit_names.values())],
+        options=[{"label": v, "value": v} for v in sorted(circuit_names_for_dropdown.values())],
         multi=True,
         placeholder="Select Circuits",
         closeOnSelect=False,
@@ -345,7 +214,7 @@ app.layout = html.Div([
 
 df_plot = circuit_constructor_driver_counts.copy()
 
-df_plot["Circuit"] = df_plot["circuitId"].map(circuit_names)
+df_plot["Circuit"] = df_plot["circuitId"].map(circuit_names_for_dropdown)
 df_plot["Constructor"] = df_plot["constructorId"].map(constructor_names)
 df_plot["Driver"] = df_plot["driverId"].map(driver_names)
 
