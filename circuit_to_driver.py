@@ -127,42 +127,10 @@ Layout and callbacks
 # Create Dash app
 app = dash.Dash(__name__)
 
-ATTRIBUTE_ORDER = ["Circuits", "Constructors", "Drivers"]
-
-FILTER_DROPDOWNS = {
-    "Circuits": dcc.Dropdown(
-        id="circuit-filter",
-        options=[{"label": v, "value": v} for v in sorted(circuit_names_for_dropdown.values())],
-        multi=True,
-        placeholder="Select Circuits",
-        closeOnSelect=False,
-        style={
-            "flex": "1",
-            "padding":  "10px"
-        }
-    ),
-    "Constructors": dcc.Dropdown(
-        id="constructor-filter",
-        options=[{"label": v, "value": v} for v in sorted(constructor_names.values())],
-        multi=True,
-        placeholder="Select Constructors",
-        closeOnSelect=False,
-        style={
-            "flex": "1",
-            "padding":  "10px"
-        }
-    ),
-    "Drivers": dcc.Dropdown(
-        id="driver-filter",
-        options=[{"label": v, "value": v} for v in sorted(driver_names.values())],
-        multi=True,
-        placeholder="Select Drivers",
-        closeOnSelect=False,
-        style={
-            "flex": "1",
-            "padding":  "10px"
-        }
-    )
+ITEM_STYLE = {
+    "flex": "0 0 33.333%",
+    "padding": "10px",
+    "boxSizing": "border-box"
 }
 
 # Layout
@@ -171,10 +139,95 @@ app.layout = html.Div([
 
     html.Div(
         id="filter-row",
-        children=[FILTER_DROPDOWNS[attr] for attr in ATTRIBUTE_ORDER],
+        children=[
+            dcc.Dropdown(
+                id="circuit-filter",
+                options=[{"label": v, "value": v} for v in sorted(circuit_names_for_dropdown.values())],
+                multi=True,
+                placeholder="Select Circuits",
+                closeOnSelect=False,
+                style=ITEM_STYLE
+            ),
+            
+            dcc.Dropdown(
+                id="constructor-filter",
+                options=[{"label": v, "value": v} for v in sorted(constructor_names.values())],
+                multi=True,
+                placeholder="Select Constructors",
+                closeOnSelect=False,
+                style=ITEM_STYLE
+            ),
+            
+            dcc.Dropdown(
+                id="driver-filter",
+                options=[{"label": v, "value": v} for v in sorted(driver_names.values())],
+                multi=True,
+                placeholder="Select Drivers",
+                closeOnSelect=False,
+                style=ITEM_STYLE
+            ),
+            
+            html.Div(
+                [
+                    html.Span("Sorting:", style={"margin-right": "15px"}),
+                    dcc.RadioItems(
+                        id="sort-toggle-circuits",
+                        options=[
+                            {"label": "None", "value": 0},
+                            {"label": "By Name", "value": 1},
+                            {"label": "By Count", "value": 2}
+                        ],
+                        value=0,  # Default is None
+                        inline=True,
+                        labelStyle={"padding": "5px"},
+                        inputStyle={"margin-right": "5px"}
+                    )
+                ], 
+                style=ITEM_STYLE
+            ),
+
+            html.Div(
+                [
+                    html.Span("Sorting:", style={"margin-right": "15px"}),
+                    dcc.RadioItems(
+                        id="sort-toggle-constructors",
+                        options=[
+                            {"label": "None", "value": 0},
+                            {"label": "By Name", "value": 1},
+                            {"label": "By Count", "value": 2}
+                        ],
+                        value=0,  # Default is None
+                        inline=True,
+                        labelStyle={"padding": "5px"},
+                        inputStyle={"margin-right": "5px"}
+                    )
+                ], 
+                style=ITEM_STYLE
+            ),
+
+            html.Div(
+                [
+                    html.Span("Sorting:", style={"margin-right": "15px"}),
+                    dcc.RadioItems(
+                        id="sort-toggle-drivers",
+                        options=[
+                            {"label": "None", "value": 0},
+                            {"label": "By Name", "value": 1},
+                            {"label": "By Count", "value": 2}
+                        ],
+                        value=0,  # Default is None
+                        inline=True,
+                        labelStyle={"padding": "5px"},
+                        inputStyle={"margin-right": "5px"}
+                    )
+                ], 
+                style=ITEM_STYLE
+            )
+        ],
         style={
             "display": "flex",
-            "justify-content": "space-between"
+            "flexWrap": "wrap",     # allow wrapping
+            "width": "100%"
         }
     ),
     
@@ -202,6 +255,8 @@ app.layout = html.Div([
             "margin": "10px"
         }
     ),
+
+    
     
     dcc.Graph(
         id="parcats-graph",
@@ -226,9 +281,12 @@ df_plot["Driver"] = df_plot["driverId"].map(driver_names)
     Input("constructor-filter", "value"),
     Input("driver-filter", "value"),
     Input("limit-items-toggle", "value"),
+    Input("sort-toggle-circuits", "value"),
+    Input("sort-toggle-constructors", "value"),
+    Input("sort-toggle-drivers", "value")
 )
 
-def update_parcats(selected_circuits, selected_constructors, selected_drivers, limit_value):
+def update_parcats(selected_circuits, selected_constructors, selected_drivers, limit_value, sort_circuits, sort_constructors, sort_drivers):
 
     dff = df_plot.copy()
     
@@ -252,9 +310,35 @@ def update_parcats(selected_circuits, selected_constructors, selected_drivers, l
             dff["Constructor"].isin(top_constructors) &
             dff["Driver"].isin(top_drivers)
         ]
+        
+    # Sorting
+    if sort_circuits == 1:
+        dff = dff.sort_values(by="Circuit")
+        
+    if sort_circuits == 2:
+        circuit_counts = dff.groupby("Circuit")["count"].sum().sort_values(ascending=False)
+        dff["Circuit"] = pd.Categorical(dff["Circuit"], categories=circuit_counts.index, ordered=True)
+        dff = dff.sort_values("Circuit")
+    
+    if sort_constructors == 1:
+        dff = dff.sort_values(by="Constructor")
+        
+    if sort_constructors == 2:
+        constructor_counts = dff.groupby("Constructor")["count"].sum().sort_values(ascending=False)
+        dff["Constructor"] = pd.Categorical(dff["Constructor"], categories=constructor_counts.index, ordered=True)
+        dff = dff.sort_values("Constructor")
+        
+    if sort_drivers == 1:
+        dff = dff.sort_values(by="Driver")
+        
+    if sort_drivers == 2:
+        driver_counts = dff.groupby("Driver")["count"].sum().sort_values(ascending=False)
+        dff["Driver"] = pd.Categorical(dff["Driver"], categories=driver_counts.index, ordered=True)
+        dff = dff.sort_values("Driver")
+
 
     dimensions = []
-    for attr in ATTRIBUTE_ORDER:
+    for attr in ["Circuits", "Constructors", "Drivers"]:
         dimensions.append({
             "label": attr,
             "values": dff[attr[:-1]]  # Circuits → Circuit, etc.
