@@ -234,6 +234,21 @@ def draw_circuits_map(clickData):
         ),
     )
 
+    sizes = circuits["race_count"].fillna(0)
+    sizeref = 2.0 * max(sizes) / (30 ** 2)
+
+    fig.update_traces(
+        hovertemplate=("<b>%{hovertext}</b><br>%{customdata[1]}, "
+                       "%{customdata[0]}<br>Race Count: %{customdata[2]}"),
+        marker=dict(
+            sizemin=5,
+            sizeref=sizeref,
+            sizemode='area',
+        ),
+    )
+
+    print(fig.data[0].marker.color)
+
     selected_circuit = circuit_index_from_map_click(clickData)
 
     if selected_circuit is not None:
