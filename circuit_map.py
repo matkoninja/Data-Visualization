@@ -1,9 +1,8 @@
-from dash import html
-import numpy as np
+from dash import Input, Output, html, dcc
 import pandas as pd
 import plotly.express as px
 from country import alpha2_codes
-from math import ceil, floor
+from app import app
 
 
 def get_circuits_info(circuits, races):
@@ -181,6 +180,12 @@ def draw_fastest_lap_times_line_chart(clickData):
     return fig
 
 
+app.callback(
+    Output("circuits-lap-times", "figure"),
+    Input("circuits-map", "clickData"),
+)(draw_fastest_lap_times_line_chart)
+
+
 def draw_circuits_map(clickData):
     fig = px.scatter_geo(
         circuits,
@@ -211,6 +216,12 @@ def draw_circuits_map(clickData):
         fig.update_traces(marker=dict(color=colors))
 
     return fig
+
+
+app.callback(
+    Output("circuits-map", "figure"),
+    Input("circuits-map", "clickData"),
+)(draw_circuits_map)
 
 
 def _draw_circuit_info_children(title: str,
@@ -296,3 +307,38 @@ def draw_circuit_info_children(clickData):
         ],
         alpha2_codes.get(row["country"])
     )
+
+
+app.callback(
+    Output("circuit-info", "children"),
+    Input("circuits-map", "clickData"),
+)(draw_circuit_info_children)
+
+
+layout = html.Div(
+    [
+        html.Div(
+            [
+                dcc.Graph(
+                    figure=draw_circuits_map(None),
+                    id="circuits-map",
+                    style={
+                        "flex": "1 1 0",
+                        "border": "1px solid #ccc",
+                    },
+                ),
+                html.Div(
+                    None,
+                    id="circuit-info",
+                    className="circuit-info_container",
+                ),
+            ],
+            className="circuits-map-info_container",
+        ),
+        dcc.Graph(
+            figure=draw_fastest_lap_times_line_chart(None),
+            id="circuits-lap-times",
+        )
+    ],
+    className="circuits-lap-times-container",
+)
