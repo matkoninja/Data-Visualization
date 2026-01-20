@@ -2,6 +2,8 @@ from dash import Input, Output, html, dcc
 import pandas as pd
 import plotly.express as px
 from country import alpha2_codes
+from math import ceil, floor
+import numpy as np
 from app import app
 
 
