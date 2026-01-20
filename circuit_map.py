@@ -247,8 +247,6 @@ def draw_circuits_map(clickData):
         ),
     )
 
-    print(fig.data[0].marker.color)
-
     selected_circuit = circuit_index_from_map_click(clickData)
 
     if selected_circuit is not None:
