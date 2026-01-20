@@ -169,8 +169,6 @@ def draw_fastest_lap_times_line_chart(clickData):
         circuit_lap_times["fastest_milliseconds"].max() / 1000) * 1000
     ticks_vals = np.arange(min_time, max_time + 1, 1000)
     ticks_texts = list(map(format_lap_time_s, ticks_vals))
-    print(ticks_vals)
-    print(ticks_texts)
 
     fig.update_layout(
         yaxis=dict(
@@ -179,10 +177,6 @@ def draw_fastest_lap_times_line_chart(clickData):
             ticktext=ticks_texts,
         )
     )
-
-    # print(fig.layout.yaxis)
-    # print(times_with_format.head())
-    print(min_time, max_time)
 
     return fig
 
