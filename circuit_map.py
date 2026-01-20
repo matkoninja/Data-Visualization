@@ -7,7 +7,7 @@ import numpy as np
 from app import app
 
 
-def get_circuits_info(circuits, races):
+def get_circuits_info(circuits, races, circuits_extras) -> pd.DataFrame:
     # Count number of races per circuitId
     races_by_circuit = races.groupby("circuitId")
     race_counts = races_by_circuit["raceId"].count().reset_index()
@@ -19,6 +19,9 @@ def get_circuits_info(circuits, races):
     circuits_with_counts = circuits.merge(race_counts,
                                           on="circuitId",
                                           how="left")
+    circuits_with_counts = circuits_with_counts.merge(circuits_extras,
+                                                      on="circuitId",
+                                                      how="left")
     circuits_with_counts = circuits_with_counts.merge(year_stats,
                                                       on="circuitId",
                                                       how="left")
@@ -103,8 +106,11 @@ def get_circuits_data():
     lap_times = pd.read_csv(
         "./dataset/lap_times.csv",
     )
+    circuits_extras = pd.read_csv(
+        "./dataset/circuits_extra.csv",
+    )
 
-    circuits_info = get_circuits_info(circuits, races)
+    circuits_info = get_circuits_info(circuits, races, circuits_extras)
     fastest_lap_times = get_fastest_lap_times(circuits, races, lap_times)
 
     return circuits_info, fastest_lap_times
@@ -164,10 +170,14 @@ def draw_fastest_lap_times_line_chart(clickData):
 
     # fig.update_yaxes(autorange="reversed")
 
-    min_time = floor(
-        circuit_lap_times["fastest_milliseconds"].min() / 1000) * 1000
-    max_time = ceil(
-        circuit_lap_times["fastest_milliseconds"].max() / 1000) * 1000
+    min_time_raw = circuit_lap_times["fastest_milliseconds"].min()
+    min_time = (floor(min_time_raw / 1000) * 1000
+                if not np.isnan(min_time_raw) else 60_000)
+
+    max_time_raw = circuit_lap_times["fastest_milliseconds"].max()
+    max_time = (ceil(max_time_raw / 1000) * 1000
+                if not np.isnan(max_time_raw) else 120_000)
+
     ticks_vals = np.arange(min_time, max_time + 1, 1000)
     ticks_texts = list(map(format_lap_time_s, ticks_vals))
 
@@ -195,10 +205,11 @@ def draw_circuits_map(clickData):
         lon="lng",
         size="race_count",
         hover_name="name",
-        hover_data={"country": True, "location": True,
-                    "lat": False, "lng": False, "race_count": True,
-                    "seasons": True},
+        hover_data={"country": False, "location": False,
+                    "lat": False, "lng": False, "race_count": False,
+                    "seasons": False},
         projection="natural earth",
+        custom_data=["country", "location", "race_count"]
     )
 
     fig.update_geos(showcountries=True,
@@ -207,12 +218,28 @@ def draw_circuits_map(clickData):
     fig.update_layout(
         title="Circuit Locations",
         margin={"l": 0, "r": 0, "t": 40, "b": 0},
+        uirevision='keep-geo',
     )
+
+    sizes = circuits["race_count"].fillna(0)
+    sizeref = 2.0 * max(sizes) / (30 ** 2)
+
+    fig.update_traces(
+        hovertemplate=("<b>%{hovertext}</b><br>%{customdata[1]}, "
+                       "%{customdata[0]}<br>Race Count: %{customdata[2]}"),
+        marker=dict(
+            sizemin=5,
+            sizeref=sizeref,
+            sizemode='area',
+        ),
+    )
+
+    print(fig.data[0].marker.color)
 
     selected_circuit = circuit_index_from_map_click(clickData)
 
     if selected_circuit is not None:
-        colors = ["blue"] * len(circuits)
+        colors = ["#636efa"] * len(circuits)
         colors[selected_circuit] = "red"
 
         fig.update_traces(marker=dict(color=colors))
@@ -304,8 +331,14 @@ def draw_circuit_info_children(clickData):
         row["name"],
         f"{row['location']}, {row['country']}",
         [
-            ("Coordinates:", f"({row['lat']}, {row['lng']})"),
-            ("Seasons:", f"{row['seasons']}"),
+            ("Length", f"{row['length']} km"),
+            ("# of Laps", f"{row['laps']}"),
+            ("Race Distance", f"{row['distance']} km"),
+            ("# of Turns", f"{row['turns']}"),
+            ("# of DRS Zones", f"{row['drs']}"),
+            ("Fastest Lap", f"{row['fastest_lap']}"),
+            ("Fastest Race Lap", f"{row['fastest_race_lap']}"),
+            ("Seasons", f"{row['seasons']}"),
         ],
         alpha2_codes.get(row["country"])
     )
