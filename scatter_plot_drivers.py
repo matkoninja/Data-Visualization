@@ -4,8 +4,7 @@ import plotly.graph_objects as go
 from datetime import datetime
 from os.path import join
 from dash import  html
-from teams import map_team, team_colors
-
+from teams import map_team, team_colors, HISTORICAL_TEAM_MAP
 
 # --- DATA SETUP ---
 DATASET_PATH = "./dataset"
@@ -31,14 +30,55 @@ final_races = standings_with_year.groupby('year')['raceId'].max().reset_index()
 champions = standings_with_year.merge(final_races, on=['year', 'raceId'])
 champions = champions[champions['position'] == 1]
 
-# ---  CAREER EXTREMES ---
+# --- CAREER EXTREMES (START/END) ---
 career = df.groupby('driverId').agg({
-'year': ['min', 'max'],
-'driver_name': 'first',
-'nationality': 'first',
-'dob': 'first'
+    'year': ['min', 'max'],
+    'driver_name': 'first',
+    'nationality': 'first',
+    'dob': 'first'
 }).reset_index()
 career.columns = ['driverId', 'start_year', 'end_year', 'driver_name', 'nationality', 'dob']
+
+# HELPERS
+def get_career_data():
+    """Return the career dataset for external use"""
+    return career
+
+def get_driver_data(driver_id):
+    """Get specific driver data"""
+    driver_data = drivers[drivers['driverId'] == driver_id]
+    if not driver_data.empty:
+        return driver_data.iloc[0]
+    return None
+
+# END HELPERS
+# Get the first and last team for each driver
+first_team = df.groupby('driverId').apply(
+    lambda x: x[x['year'] == x['year'].min()]['constructor_name'].mode().iloc[0]
+).reset_index(name='first_team')
+
+last_team = df.groupby('driverId').apply(
+    lambda x: x[x['year'] == x['year'].max()]['constructor_name'].mode().iloc[0]
+).reset_index(name='last_team')
+
+career = career.merge(first_team, on='driverId').merge(last_team, on='driverId')
+
+# Create start and end points for plotting
+start_points = career[['driverId', 'start_year', 'driver_name', 'nationality', 'dob', 'first_team']].copy()
+start_points['year'] = start_points['start_year']
+start_points['team'] = start_points['first_team']
+start_points['type'] = 'Start'
+start_points['age'] = start_points['year'] - pd.to_datetime(start_points['dob']).dt.year
+
+end_points = career[['driverId', 'end_year', 'driver_name', 'nationality', 'dob', 'last_team']].copy()
+end_points['year'] = end_points['end_year']
+end_points['team'] = end_points['last_team']
+end_points['type'] = 'End'
+end_points['age'] = end_points['year'] - pd.to_datetime(end_points['dob']).dt.year
+
+# Map teams
+start_points['team_group'] = start_points['team'].apply(map_team)
+end_points['team_group'] = end_points['team'].apply(map_team)
 
 # --- DRIVER STATISTICS ---
 wins = df[df['positionOrder'] == 1].groupby('driverId').size()
@@ -66,182 +106,273 @@ pd.DataFrame({
 }), on='driverId', how='left'
 )
 
-# print(career)
-
-#TEAM SWAPS
-driver_year_team = df.groupby(['driverId', 'year'])['constructor_name'].apply(
-lambda x: x.mode().iloc[0] if not x.empty else 'Unknown'
-).reset_index(name='primary_team')
-
-driver_year_team = driver_year_team.sort_values(['driverId', 'year'])
-
-driver_year_team['prev_team'] = driver_year_team.groupby('driverId')['primary_team'].shift(1)
-driver_year_team['team_changed'] = driver_year_team['prev_team'] != driver_year_team['primary_team']
-
-term_starts = driver_year_team[driver_year_team['team_changed']].copy()
-term_starts['term_type'] = 'term Start'
-
-term_ends = []
-for _, start in term_starts.iterrows():
-    driver_id = start['driverId']
-    team = start['primary_team']
-    start_yr = start['year']
-    
-    driver_team_years = driver_year_team[
-        (driver_year_team['driverId'] == driver_id) & 
-        (driver_year_team['primary_team'] == team) &
-        (driver_year_team['year'] >= start_yr)
-    ]['year'].sort_values().tolist()
-    
-    end_yr = start_yr
-    for i, yr in enumerate(driver_team_years[:-1]):
-        if driver_team_years[i + 1] == yr + 1: 
-            end_yr = driver_team_years[i + 1]
-        else:  
-            break
-    
-    term_ends.append({
-        'driverId': driver_id,
-        'year': end_yr,
-        'primary_team': team,
-        'term_type': 'term End'
-    })
-term_ends_df = pd.DataFrame(term_ends)
-
-term_data = pd.concat([
-term_starts[['driverId', 'year', 'primary_team', 'term_type']],
-term_ends_df
-], ignore_index=True)
-
-term_data = term_data.merge(
-df[['driverId', 'year', 'driver_name', 'age']].drop_duplicates(),
-on=['driverId', 'year'],
-how='left'
-)
-
-# print(f"Total term markers: {len(term_data)}")
-# print(term_data.tail(10))
-
-
-
-term_data['team_group'] = term_data['primary_team'].apply(map_team)
-
-# --- PLOT DATA PREPARATION ---
-starts = term_data[term_data['term_type'] == 'term Start'].copy()
-ends = term_data[term_data['term_type'] == 'term End'].copy()
-print(term_data.tail())
-
-# Add type column for visualization
-starts['type'] = 'Start'
-ends['type'] = 'End'
-
 # Combine for unified plotting
-plot_data = pd.concat([starts, ends], ignore_index=True)
+plot_data = pd.concat([start_points, end_points], ignore_index=True)
 
-def add_jitter(df, x_col='year', y_col='age', jitter_amount=0.15):
-    """Add deterministic jitter to overlapping points based on driverId"""
-    # Create a stable offset for each driver
+def add_jitter(df, x_col='year', y_col='age', jitter_amount=0.3):
+    """Add improved jitter with team-based offsetting"""
     df = df.copy()
-    df['jitter_x'] = df['driverId'].apply(lambda x: hash(str(x) + 'x') % 100 / 100 - 0.5) * jitter_amount
-    df['jitter_y'] = df['driverId'].apply(lambda x: hash(str(x) + 'y') % 100 / 100 - 0.5) * jitter_amount
     
-    # Adjust jittered coordinates
+    # Add team-based offset to separate same-team overlaps
+    team_offsets = {team: i * 0.1 for i, team in enumerate(df['team_group'].unique())}
+    
+    # Combine driver ID and team for more stable jitter
+    df['jitter_x'] = df.apply(
+        lambda row: (hash(f"{row['driverId']}_{row['team_group']}_x") % 100 / 100 - 0.5) * jitter_amount + team_offsets.get(row['team_group'], 0), 
+        axis=1
+    )
+    df['jitter_y'] = df.apply(
+        lambda row: (hash(f"{row['driverId']}_{row['team_group']}_y") % 100 / 100 - 0.5) * jitter_amount,
+        axis=1
+    )
+    
     df['jittered_x'] = df[x_col] + df['jitter_x']
     df['jittered_y'] = df[y_col] + df['jitter_y']
     
     return df
-def create_career_plot(selected_circuit=None, mode='start', enable_jitter=True):
-    """Create plot showing team stints with jittering for overlapping points"""
+
+# In scatter_plot_drivers.py - update create_career_plot function
+def create_career_plot(mode='start', enable_jitter=True):
+    """Create career plot with improved legend and disclaimer"""
     
-    # Apply jittering to both start and end points
+    # Apply jittering
     if enable_jitter:
-        starts_jittered = add_jitter(starts)
-        ends_jittered = add_jitter(ends)
+        start_plot = add_jitter(start_points)
+        end_plot = add_jitter(end_points)
     else:
-        starts_jittered = starts.copy()
-        ends_jittered = ends.copy()
-        starts_jittered['jittered_x'] = starts_jittered['year']
-        starts_jittered['jittered_y'] = starts_jittered['age']
-        ends_jittered['jittered_x'] = ends_jittered['year']
-        ends_jittered['jittered_y'] = ends_jittered['age']
+        start_plot = start_points.copy()
+        end_plot = end_points.copy()
+        start_plot['jittered_x'] = start_plot['year']
+        start_plot['jittered_y'] = start_plot['age']
+        end_plot['jittered_x'] = end_plot['year']
+        end_plot['jittered_y'] = end_plot['age']
     
     fig = go.Figure()
     
-    # Get and sort teams: background first, then foreground
-    all_teams = plot_data['team_group'].unique()
+    # Use different marker sizes and opacity for better visibility
+    marker_config = {
+        'start': {'size': 10, 'opacity': 0.8, 'symbol': 'circle'},
+        'end': {'size': 10, 'opacity': 0.8, 'symbol': 'x'},
+        'both': {'size': 9, 'opacity': 0.7}
+    }
+    
+    config = marker_config.get(mode, marker_config['both'])
+    
+    # Plot teams in order (background first)
+    all_teams = sorted(set(start_plot['team_group'].tolist() + end_plot['team_group'].tolist()))
     background_teams = {'Other', 'Unknown', 'Team Lotus Original'}
     
-    bg_teams = sorted([t for t in all_teams if t in background_teams])
-    fg_teams = sorted([t for t in all_teams if t not in background_teams])
-    ordered_teams = bg_teams + fg_teams  # Background drawn first
+    # Track which teams we've shown in legend
+    legend_shown = set()
     
-    for team in ordered_teams:
+    for team in all_teams:
         color = team_colors.get(team, '#A0A0A0')
+        is_background = team in background_teams
         
-        # Draw START points
+        # Plot start points
         if mode in ['start', 'both']:
-            start_pts = starts_jittered[starts_jittered['team_group'] == team]
-            if not start_pts.empty:
+            team_starts = start_plot[start_plot['team_group'] == team]
+            if not team_starts.empty:
+                show_in_legend = (mode == 'start') or (mode == 'both' and team not in legend_shown)
+                if show_in_legend:
+                    legend_shown.add(team)
+                    
                 fig.add_trace(go.Scatter(
-                    x=start_pts['jittered_x'], y=start_pts['jittered_y'],
-                    mode='markers', name=team, legendgroup=team,
-                    showlegend=(mode == 'start'),
-                    marker=dict(symbol='circle', size=8, color=color),
+                    x=team_starts['jittered_x'], y=team_starts['jittered_y'],
+                    mode='markers', name=f"{team}", legendgroup=team,
+                    showlegend=show_in_legend,
+                    marker=dict(
+                        symbol='circle', 
+                        size=config['size'] - (1 if is_background else 0), 
+                        color=color, 
+                        opacity=config['opacity'] - (0.2 if is_background else 0)
+                    ),
                     customdata=list(zip(
-                        start_pts['driverId'], start_pts['driver_name'], 
-                        start_pts['primary_team'], start_pts['year'], start_pts['age']
+                        team_starts['driverId'], team_starts['driver_name'], 
+                        team_starts['team'], team_starts['year'], team_starts['age']
                     )),
-                    hovertemplate='%{customdata[1]}<br>Year: %{customdata[3]}<br>Age: %{customdata[4]}<br>Team: %{customdata[2]}<br><b>START</b><extra></extra>',
+                    hovertemplate='%{customdata[1]}<br>Year: %{customdata[3]}<br>Age: %{customdata[4]}<br>Team: %{customdata[2]}<br><b>Career Start</b><extra></extra>',
                 ))
         
-        # Draw END points (on top of starts for same team)
+        # Plot end points
         if mode in ['end', 'both']:
-            end_pts = ends_jittered[ends_jittered['team_group'] == team]
-            if not end_pts.empty:
+            team_ends = end_plot[end_plot['team_group'] == team]
+            if not team_ends.empty:
+                show_in_legend = (mode == 'end') or (mode == 'both' and team not in legend_shown)
+                if show_in_legend:
+                    legend_shown.add(team)
+                    
                 fig.add_trace(go.Scatter(
-                    x=end_pts['jittered_x'], y=end_pts['jittered_y'],
-                    mode='markers', name=team, legendgroup=team,
-                    showlegend=(mode == 'end'),
-                    marker=dict(symbol='x', size=8, color=color),
+                    x=team_ends['jittered_x'], y=team_ends['jittered_y'],
+                    mode='markers', name=f"{team}", legendgroup=team,
+                    showlegend=show_in_legend,
+                    marker=dict(
+                        symbol='x', 
+                        size=config['size'] - (1 if is_background else 0), 
+                        color=color, 
+                        opacity=config['opacity'] - (0.2 if is_background else 0)
+                    ),
                     customdata=list(zip(
-                        end_pts['driverId'], end_pts['driver_name'], 
-                        end_pts['primary_team'], end_pts['year'], end_pts['age']
+                        team_ends['driverId'], team_ends['driver_name'], 
+                        team_ends['team'], team_ends['year'], team_ends['age']
                     )),
-                    hovertemplate='%{customdata[1]}<br>Year: %{customdata[3]}<br>Age: %{customdata[4]}<br>Team: %{customdata[2]}<br><b>END</b><extra></extra>',
+                    hovertemplate='%{customdata[1]}<br>Year: %{customdata[3]}<br>Age: %{customdata[4]}<br>Team: %{customdata[2]}<br><b>Career End</b><extra></extra>',
                 ))
     
+    # Add disclaimer annotation
+    other_teams = ", ".join([team for team, label in HISTORICAL_TEAM_MAP.items() if label == "Other"])
+    disclaimer_text = insert_break_after(f'Note: Background teams ({other_teams}, Unknown, Team Lotus Original) represent less prominent/historical teams', 200)
+
     fig.update_layout(
-        title=f'Drivers Career: {mode.title()} Points',
-        xaxis_title='Season', yaxis_title='Age',
-        plot_bgcolor='white', height=700,
-        showlegend=(mode != 'both'),
-        xaxis=dict(range=[plot_data['year'].min() - 0.5, plot_data['year'].max() + 0.5]),
-        yaxis=dict(range=[plot_data['age'].min() - 1, plot_data['age'].max() + 1]),
+        title=f'Entry Age of Formula Drivers by Year',
+        xaxis_title='Season', 
+        yaxis_title='Age',
+        plot_bgcolor='white', 
+        height=700,
+        showlegend=True,
+        legend=dict(
+            yanchor="top", 
+            y=0.99, 
+            xanchor="left", 
+            x=1.02,
+            bgcolor="rgba(255, 255, 255, 0.8)",
+        ),
+        xaxis=dict(range=[min(start_plot['year'].min(), end_plot['year'].min()) - 1, 
+                         max(start_plot['year'].max(), end_plot['year'].max()) + 1]),
+        yaxis=dict(range=[min(start_plot['age'].min(), end_plot['age'].min()) - 2, 
+                         max(start_plot['age'].max(), end_plot['age'].max()) + 2]),
+        annotations=[
+             dict(
+                text=disclaimer_text,
+                xref="paper", yref="paper",
+                x=0.98, y=0.98,  # Top-right corner
+                showarrow=False,
+                font=dict(size=9, color="gray"),
+                align="left",
+                bgcolor="rgba(255, 255, 255, 0.9)",
+                bordercolor="gray",
+                borderwidth=1,
+                borderpad=4,
+                xanchor="right",  # Anchor to right side
+                yanchor="top"     # Anchor to top side
+            )
+        ]
     )
     
     return fig
 
-def html_render(clickData):
-        point = clickData['points'][0]
-        driver_id = point['customdata'][0]
-        
-        driver_data = career[career['driverId'] == driver_id].iloc[0]
+def insert_break_after(text, after): #https://community.plotly.com/t/ploty-legned-break-line-fixed-width/79868
+    if len(text) <= after:
+        return text
+    else:
+        space_index = text.find(' ', after)
+        if space_index == -1:
+            return text
+        return text[:space_index] + '<br>' + insert_break_after(text[space_index+1:],after)
 
-        return html.Div([
-            html.H3(driver_data['driver_name'], className="driver-name"),
-            html.Div([
-                html.P(f"Nationality: {driver_data['nationality']}"),
-                html.P(f"Career: {driver_data['start_year']} - {driver_data['end_year']}"),
-                html.P(f"Age Debut: {abs(datetime.fromisoformat(driver_data['dob']).year - driver_data['start_year'])} years old"),
-            ], className="basic-info"),
-            html.Div([
-                html.P(f"Total Races: {driver_data['total_races']}"),
-                html.P(f"Wins: {driver_data['wins']}"),
-                html.P(f"Podiums: {driver_data['podiums']}"),
-                html.P(f"Championships: {driver_data['championships']}"),
-            ], className="stats-grid"),
-            html.Div([
-                html.P("Teams:", className="teams-label"),
-                html.P(", ".join(driver_data['teams_list']), className="teams-list")
-            ], className="teams-section")
-        ], className="card-content")
+def create_career_timeline(driver_id):
+    """Create enhanced career timeline chart with all placements and mean line"""
+    
+    # Get driver's race results
+    driver_results = df[df['driverId'] == driver_id].copy()
+    driver_results = driver_results.sort_values('year')
+    
+    # Get best position per year (including below 10th)
+    yearly_best = driver_results.groupby('year').agg({
+        'positionOrder': 'min',
+        'driver_name': 'first',
+        'constructor_name': lambda x: x.mode().iloc[0] if not x.empty else 'Unknown'
+    }).reset_index()
+    
+    # Calculate mean placement per season
+    yearly_stats = driver_results.groupby('year').agg({
+        'positionOrder': ['min', 'mean', 'count'],
+        'constructor_name': lambda x: x.mode().iloc[0] if not x.empty else 'Unknown'
+    }).reset_index()
+    
+    yearly_stats.columns = ['year', 'best_position', 'mean_position', 'race_count', 'constructor_name']
+    yearly_stats['mean_position'] = yearly_stats['mean_position'].round(1)
+    
+    # Merge with best positions
+    yearly_best = yearly_best.merge(yearly_stats[['year', 'mean_position', 'race_count']], on='year')
+    
+    # Categorize results
+    yearly_best['win'] = yearly_best['positionOrder'] == 1
+    yearly_best['podium'] = yearly_best['positionOrder'] <= 3
+    yearly_best['points'] = yearly_best['positionOrder'] <= 10
+    yearly_best['top15'] = yearly_best['positionOrder'] <= 15
+    
+    fig = go.Figure()
+    
+    # Plot all seasons with different categories
+    categories = [
+        ('Championship (1st)', yearly_best[yearly_best['win']], 'red', 'star', 15),
+        ('Podium (2-3rd)', yearly_best[yearly_best['podium'] & ~yearly_best['win']], 'gold', 'diamond', 12),
+        ('Points (4-10th)', yearly_best[yearly_best['points'] & ~yearly_best['podium']], 'lightblue', 'circle', 10),
+        ('Top 15 (11-15th)', yearly_best[yearly_best['top15'] & ~yearly_best['points']], 'lightgreen', 'circle', 8),
+        ('Other (16+)', yearly_best[~yearly_best['top15']], 'lightgray', 'circle', 6)
+    ]
+    
+    for name, data, color, symbol, size in categories:
+        if not data.empty:
+            fig.add_trace(go.Scatter(
+                x=data['year'],
+                y=data['positionOrder'],
+                mode='markers',
+                name=name,
+                marker=dict(size=size, color=color, symbol=symbol),
+                customdata=list(zip(data['constructor_name'], data['positionOrder'], data['race_count'])),
+                hovertemplate='%{x}: %{customdata[1]}th place<br>Team: %{customdata[0]}<br>Races: %{customdata[2]}<extra></extra>'
+            ))
+    
+    # Add mean position line
+    fig.add_trace(go.Scatter(
+        x=yearly_stats['year'],
+        y=yearly_stats['mean_position'],
+        mode='lines+markers',
+        name='Season Average',
+        line=dict(color='black', width=3, dash='dash'),
+        marker=dict(size=8, color='black', symbol='x'),
+        customdata=list(zip(yearly_stats['race_count'], yearly_stats['mean_position'])),
+        hovertemplate='%{x}: Avg %{customdata[1]}th place<br>Races: %{customdata[0]}<extra></extra>'
+    ))
+    
+    # Add best position line (connecting all points)
+    fig.add_trace(go.Scatter(
+        x=yearly_best['year'],
+        y=yearly_best['positionOrder'],
+        mode='lines',
+        name='Best Position',
+        line=dict(color='darkblue', width=1),
+        showlegend=False,
+        hoverinfo='skip'
+    ))
+    
+    # Invert y-axis so 1st place is at top
+    fig.update_yaxes(autorange='reversed')
+    
+    # Calculate y-axis range to include all positions
+    min_pos = yearly_best['positionOrder'].min()
+    max_pos = yearly_best['positionOrder'].max()
+    y_range = [max_pos + 1, max(0.5, min_pos - 1)]
+    
+    fig.update_layout(
+        title=f"{yearly_best['driver_name'].iloc[0]} - Complete Career Timeline",
+        xaxis_title='Year',
+        yaxis_title='Best Championship Position',
+        plot_bgcolor='white',
+        height=500,
+        yaxis=dict(range=y_range),
+        xaxis=dict(range=[yearly_best['year'].min() - 1, yearly_best['year'].max() + 1]),
+        legend=dict(
+            yanchor="top",
+            y=0.99,
+            xanchor="left",
+            x=1.02,
+            bgcolor="rgba(255, 255, 255, 0.8)",
+            bordercolor="Black",
+            borderwidth=1
+        )
+    )
+    
+    return fig    
