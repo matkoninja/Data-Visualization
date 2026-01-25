@@ -1,0 +1,6 @@
+/* Force DAQ BooleanSwitch to respect theme */
+.daq-booleanswitch {
+    --daq-switch-on: var(--primary) !important;
+    --daq-switch-off: var(--border-subtle) !important;
+    --daq-switch-handle: #FFFFFF !important;
+}

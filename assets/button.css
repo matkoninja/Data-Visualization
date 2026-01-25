@@ -1,0 +1,43 @@
+/* =========================================================
+   Button styled like Dropdown control
+   ========================================================= */
+
+.control-button {
+    background-color: var(--bg-panel);
+    border: 1px solid var(--border-subtle);
+    color: var(--text-primary);
+
+    height: 36px;              /* matches Select-control */
+    width: 36px;
+    padding: 0 12px;
+
+    border-radius: 4px;        /* React-Select default */
+    cursor: pointer;
+
+    font-size: 14px;
+    line-height: 36px;         /* vertical centering */
+    text-align: center;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Hover */
+.control-button:hover {
+    background-color: var(--bg-panel);
+    border-color: var(--secondary);
+}
+
+/* Active / pressed */
+.control-button:active {
+    background-color: var(--secondary);
+    border-color: var(--secondary);
+}
+
+/* Focus (keyboard nav) */
+.control-button:focus {
+    outline: none;
+    border-color: var(--secondary);
+}
+

@@ -1,23 +1,17 @@
 /* change the filled track (bar showing selected range) */
 #count-slider .rc-slider-track {
-    background-color: #FF1E00;   /* your color */
+    background-color: var(--primary);
 }
 
 /* change the unfilled track (rail) */
 #count-slider .rc-slider-rail {
-    background-color: #C4C4C4;
+    background-color: var(--border-subtle);
 }
 
 /* change the handle (thumb) */
 #count-slider .rc-slider-handle {
-    background-color: #fff;
-    border-color: #C4C4C4;
-}
-
-/* handle hover/active states */
-#count-slider .rc-slider-handle:hover,
-#count-slider .rc-slider-handle:focus {
-    border-color: #C4C4C4;
+    border: solid 2px var(--primary);
+    background-color: var(--bg-panel);
 }
 
 /* optional: change “dot” marks when present */

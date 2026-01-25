@@ -1,0 +1,30 @@
+.Select-control {
+    background-color: var(--bg-panel) !important;
+    border: 1px solid var(--border-subtle) !important;
+    color: var(--text-primary) !important;
+}
+
+.Select-placeholder,
+.Select--single > .Select-control .Select-value {
+    color: var(--text-secondary) !important;
+}
+
+.Select-menu-outer {
+    background-color: var(--bg-panel);
+    border: 1px solid var(--border-subtle);
+}
+
+.Select-option {
+    background-color: var(--bg-panel);
+    color: var(--text-primary);
+}
+
+.Select-option.is-focused {
+    background-color: var(--secondary);
+    color: var(--bg-main);
+}
+
+.Select-option.is-selected {
+    background-color: var(--primary);
+    color: white;
+}

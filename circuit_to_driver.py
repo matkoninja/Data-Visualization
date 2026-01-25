@@ -5,6 +5,27 @@ import pandas as pd
 import plotly.graph_objects as go
 import os
 import textwrap
+import plotly.io as pio
+
+# """
+# ================================================================================
+#                 Setting colors
+# ================================================================================
+# """
+
+pio.templates["dash_theme"] = go.layout.Template(
+    layout=dict(
+        paper_bgcolor="var(--bg-main)",
+        plot_bgcolor="var(--bg-main)",
+        font=dict(color="var(--text-primary)"),
+        colorway=[
+            "var(--primary)",     # first trace
+            "var(--secondary)"
+        ]
+    )
+)
+
+pio.templates.default = "dash_theme"
 
 """
 ================================================================================
@@ -136,14 +157,15 @@ total_values = df_plot["count"].sum()
 
 
 MAIN_DROPDOWN_STYLE = {
-    "flex": "0 0 33.333%",
-    "padding": "10px",
-    "boxSizing": "border-box"
+    "flex": "1",
 }
 
 # Layout
 app.layout = html.Div([
-    html.H2("Circuits → Constructors → Drivers (Winners Only)"),
+    html.H2(
+        "Circuits → Constructors → Drivers (Winners Only)", 
+        style={"padding": "10px"}
+    ),
 
     html.Div(
         id="filter-row",
@@ -177,7 +199,8 @@ app.layout = html.Div([
         ],
         style={
             "display": "flex",
-            "justify-content": "space-evenly",
+            "gap":"10px",
+            "padding": "10px",
         }
     ),
     
@@ -188,12 +211,10 @@ app.layout = html.Div([
                 daq.BooleanSwitch(
                     id="sort-enable",
                     on=False,
-                    color="#FF1E00",
-                    label="Sort all records",
-                    style={"margin-right": "10px"}
+                    color="#FF1E00"
                 ),
 
-                html.Span(" by ", style = { "margin-right": "10px"}),
+                html.Span("Sort all records by"),
                 
                 dcc.Dropdown(
                     id="sort-by-column",
@@ -204,10 +225,10 @@ app.layout = html.Div([
                     ],
                     value="Circuit",
                     clearable=False,
-                    style={"width": "150px",  "margin-right": "10px"}
+                    style={"width": "150px"}
                 ),
                 
-                html.Span(" considering its ", style = { "margin-right": "10px"}),
+                html.Span("considering its"),
 
                 dcc.Dropdown(
                     id="sort-by-parameter",
@@ -217,21 +238,22 @@ app.layout = html.Div([
                     ],
                     value="name",
                     clearable=False,
-                    style={"width": "150px",  "margin-right": "10px"}
+                    style={"width": "150px"}
                 ),
 
                 html.Button(
                     "↓",
                     id="sort-order",
                     n_clicks=0,
-                    style={"width": "40px"}
+                    className="control-button"
                 )
             ],
             style={
                 "flex": "0 0 50%",
                 "display": "flex",
                 "justify-content": "flex-start",
-                "align-items": "baseline"
+                "align-items": "center",
+                "gap":"10px"
             }
         ),
         
@@ -266,7 +288,10 @@ app.layout = html.Div([
             "margin": "10px"
         }
     )
-])
+],
+    id="app-root",
+    **{"data-theme": "light"}  # 👈 THIS LINE
+)
 
 
 
@@ -331,22 +356,20 @@ def update_parcats(clickData, selected_circuits, selected_constructors, selected
 
     # Build Parcats figure
     # Normalize counts to 0–1 for the colorscale
-    line_color = (dff["count"] - dff["count"].min()) / (dff["count"].max() - dff["count"].min())
-    line_color = line_color.fillna(0)  # just in case
-    colorscale = [
-        [0, "#15151E"],  # low count → dark
-        [1, "#FF1E00"]   # high count → red
-    ]
+    # line_color = (dff["count"] - dff["count"].min()) / (dff["count"].max() - dff["count"].min())
+    # line_color = line_color.fillna(0)  # just in case
+    # colorscale = [
+    #     [0, "#15151E"],  # low count → dark
+    #     [1, "#FF1E00"]   # high count → red
+    # ]
 
     fig = go.Figure(go.Parcats(
         dimensions=dimensions,
         arrangement="freeform",
+        counts=dff["count"],
         line=dict(
             shape="hspline",
-            color=colorscale[0][1], # color=line_color,       # <-- use normalized counts
-            colorscale=colorscale,
-            cmin=0,
-            cmax=1
+            color="#C4C4C4"  # 👈 REQUIRED
         )
     ))
 
@@ -356,7 +379,9 @@ def update_parcats(clickData, selected_circuits, selected_constructors, selected
     )
 
     fig.update_layout(
-        font_size=12,
+        # paper_bgcolor="#0F1117",  # outer area
+        # plot_bgcolor="#0F1117",   # plotting area
+        # font_color="#EAEAEA",
         margin=dict(t=50, l=50, r=50, b=50)
     )
     

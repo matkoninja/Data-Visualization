@@ -1,0 +1,46 @@
+/* =========================================================
+   Base tokens (do NOT change per theme)
+   ========================================================= */
+
+:root {
+    --primary: #FF1E00;
+    --secondary: #C4C4C4;
+
+    --font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+/* =========================================================
+   LIGHT THEME
+   ========================================================= */
+
+[data-theme="light"] {
+    --bg-main: #FFFFFF;
+    --bg-panel: #F5F5F5;
+
+    --text-primary: #15151E;
+    --text-secondary: #6E6E73;
+
+    --border-subtle: #E0E0E0;
+}
+
+/* =========================================================
+   DARK THEME
+   ========================================================= */
+
+[data-theme="dark"] {
+    --bg-main: #15151E;
+    --bg-panel: #1F1F28;
+
+    --text-primary: #FFFFFF;
+    --text-secondary: #C4C4C4;
+
+    --border-subtle: #2A2A33;
+}
+
+
+body {
+    background-color: var(--bg-main);
+    color: var(--text-primary);
+    font-family: var(--font-family);
+    margin: 0;
+}
