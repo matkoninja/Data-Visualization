@@ -1,5 +1,6 @@
 import dash
 from dash import Dash, html, dcc, Input, Output
+import dash_daq as daq
 import pandas as pd
 import plotly.graph_objects as go
 import os
@@ -134,7 +135,7 @@ df_plot = circuit_constructor_driver_counts.copy()
 total_values = df_plot["count"].sum()
 
 
-ITEM_STYLE = {
+MAIN_DROPDOWN_STYLE = {
     "flex": "0 0 33.333%",
     "padding": "10px",
     "boxSizing": "border-box"
@@ -153,7 +154,7 @@ app.layout = html.Div([
                 multi=True,
                 placeholder="Select Circuits",
                 closeOnSelect=False,
-                style=ITEM_STYLE
+                style=MAIN_DROPDOWN_STYLE
             ),
             
             dcc.Dropdown(
@@ -162,7 +163,7 @@ app.layout = html.Div([
                 multi=True,
                 placeholder="Select Constructors",
                 closeOnSelect=False,
-                style=ITEM_STYLE
+                style=MAIN_DROPDOWN_STYLE
             ),
             
             dcc.Dropdown(
@@ -171,82 +172,92 @@ app.layout = html.Div([
                 multi=True,
                 placeholder="Select Drivers",
                 closeOnSelect=False,
-                style=ITEM_STYLE
+                style=MAIN_DROPDOWN_STYLE
             )
         ],
         style={
             "display": "flex",
-            "flexWrap": "wrap",     # allow wrapping
-            "width": "100%"
+            "justify-content": "space-evenly",
         }
     ),
     
     html.Div(
-        [
-            dcc.Checklist(
-                id="sort-enable",
-                options=[{"label": "", "value": 1}],
-                value=[],
-                style={"margin-right": "10px"}
-            ),
+        children=[
+            html.Div(
+                [
+                daq.BooleanSwitch(
+                    id="sort-enable",
+                    on=False,
+                    color="#FF1E00",
+                    label="Sort all records",
+                    style={"margin-right": "10px"}
+                ),
 
-            html.Span("Sort all by ", style={"margin-right": "8px"}),
-            
-            dcc.Dropdown(
-                id="sort-by-column",
-                options=[
-                    {"label": "Circuits", "value": "Circuit"},
-                    {"label": "Constructors", "value": "Constructor"},
-                    {"label": "Drivers", "value": "Driver"},
-                ],
-                value="Circuit",
-                clearable=False,
-                style={"width": "120px", "margin-right": "10px"}
-            ),
-            
-            html.Span(" considering its ", style={"margin-right": "8px"}),
+                html.Span(" by ", style = { "margin-right": "10px"}),
+                
+                dcc.Dropdown(
+                    id="sort-by-column",
+                    options=[
+                        {"label": "Circuits", "value": "Circuit"},
+                        {"label": "Constructors", "value": "Constructor"},
+                        {"label": "Drivers", "value": "Driver"},
+                    ],
+                    value="Circuit",
+                    clearable=False,
+                    style={"width": "150px",  "margin-right": "10px"}
+                ),
+                
+                html.Span(" considering its ", style = { "margin-right": "10px"}),
 
-            dcc.Dropdown(
-                id="sort-by-parameter",
-                options=[
-                    {"label": "name", "value": "name"},
-                    {"label": "count", "value": "count"},
-                ],
-                value="name",
-                clearable=False,
-                style={"width": "120px", "margin-right": "10px"}
-            ),
+                dcc.Dropdown(
+                    id="sort-by-parameter",
+                    options=[
+                        {"label": "name", "value": "name"},
+                        {"label": "count", "value": "count"},
+                    ],
+                    value="name",
+                    clearable=False,
+                    style={"width": "150px",  "margin-right": "10px"}
+                ),
 
-            html.Button(
-                "↓",
-                id="sort-order",
-                n_clicks=0,
-                style={"width": "40px"}
-            )
+                html.Button(
+                    "↓",
+                    id="sort-order",
+                    n_clicks=0,
+                    style={"width": "40px"}
+                )
+            ],
+            style={
+                "flex": "0 0 50%",
+                "display": "flex",
+                "justify-content": "flex-start",
+                "align-items": "baseline"
+            }
+        ),
+        
+        html.Div(
+            [       
+                dcc.Slider(
+                    id='count-slider',
+                    min=1, 
+                    max=total_values, 
+                    step=1, 
+                    value=int(total_values/8), 
+                    marks=None, 
+                    tooltip={"placement": "bottom", "always_visible": True, "template": "First {value} values"})
+            ], 
+            style={
+                "flex": "0 0 50%",
+                "width": "100%"}
+        ),
         ],
         style={
-            "display": "flex",
-            "align-items": "center",
-            "padding": "10px"
-        }
-    ),
-    
-    html.Div(
-        [
-            # html.Span("Number of records to be shown:", style={"margin-right": "15px"}),
-           
-            html.Div([
-                dcc.Slider(min=1, max=total_values, step=1, value=int(total_values/3), id='count-slider', marks=None, tooltip={"placement": "bottom", "always_visible": True, "template": "First {value} values"})
-            ])
-        ], 
-        # style={
-        #     "display": "flex", 
-        #     "align-items": "center", 
-        #     "margin": "10px"
-        # }
-    ),
-
-    
+                "display": "flex",
+                "justify-content":  "space-between",
+                "align-items": "center",
+                "padding": "10px",
+            }
+    ),    
     
     dcc.Graph(
         id="parcats-graph",
@@ -260,6 +271,7 @@ app.layout = html.Div([
 
 
 df_plot["Circuit"] = df_plot["circuitId"].map(circuit_names_for_dropdown)
+df_plot["Circuit_labels"] = df_plot["circuitId"].map(circuit_names)
 df_plot["Constructor"] = df_plot["constructorId"].map(constructor_names)
 df_plot["Driver"] = df_plot["driverId"].map(driver_names)
 
@@ -268,17 +280,18 @@ df_plot["Driver"] = df_plot["driverId"].map(driver_names)
 @app.callback(
     Output("parcats-graph", "figure"),
     Output("sort-order", "children"),
+    Input("parcats-graph", "clickData"),
     Input("circuit-filter", "value"),
     Input("constructor-filter", "value"),
     Input("driver-filter", "value"),
     Input("count-slider", "value"),
-    Input("sort-enable", "value"),
+    Input("sort-enable", "on"),
     Input("sort-by-column", "value"),
     Input("sort-by-parameter", "value"),
     Input("sort-order", "n_clicks")
 )
 
-def update_parcats(selected_circuits, selected_constructors, selected_drivers, number_of_records, do_sort, sorting_column, sorting_type, sort_order_clicks):
+def update_parcats(clickData, selected_circuits, selected_constructors, selected_drivers, number_of_records, do_sort, sorting_column, sorting_type, sort_order_clicks):
 
     dff = df_plot.copy()
     
@@ -303,18 +316,38 @@ def update_parcats(selected_circuits, selected_constructors, selected_drivers, n
 
     # constrain the dataset to show first number_of_records records
     dff = dff.head(number_of_records)
-    
+
+    # Build dimensions
     dimensions = []
-    for attr in ["Circuits", "Constructors", "Drivers"]:
+    dimensions.append({
+            "label": "Circuits",
+            "values": dff["Circuit_labels"]
+        })
+    for attr in ["Constructors", "Drivers"]:
         dimensions.append({
             "label": attr,
-            "values": dff[attr[:-1]]  # Circuits → Circuit, etc.
+            "values": dff[attr[:-1]]
         })
-    
+
+    # Build Parcats figure
+    # Normalize counts to 0–1 for the colorscale
+    line_color = (dff["count"] - dff["count"].min()) / (dff["count"].max() - dff["count"].min())
+    line_color = line_color.fillna(0)  # just in case
+    colorscale = [
+        [0, "#15151E"],  # low count → dark
+        [1, "#FF1E00"]   # high count → red
+    ]
+
     fig = go.Figure(go.Parcats(
         dimensions=dimensions,
-        counts=dff["count"],
-        line={"shape": "hspline"}
+        arrangement="freeform",
+        line=dict(
+            shape="hspline",
+            color=colorscale[0][1], # color=line_color,       # <-- use normalized counts
+            colorscale=colorscale,
+            cmin=0,
+            cmax=1
+        )
     ))
 
     fig.update_traces(
