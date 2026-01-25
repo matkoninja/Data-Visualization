@@ -106,7 +106,7 @@ def get_fastest_lap_times(circuits: pd.DataFrame,
                        "(%{customdata[2]}) %{customdata[1]}")
                        if pd.notna(x)
                        else "<b>%{customdata[0]}</b>")
-        )
+    )
 
     return fastest_per_circuit_year
 
@@ -176,7 +176,7 @@ def draw_fastest_lap_times_line_chart(clickData):
 
     circuit_lap_times = fastest_lap_times[fastest_lap_times["circuitRef"]
                                           == selected_circuit_["circuitRef"]]
-    
+
     times_with_format = circuit_lap_times[
         ["fastest_lap", "fastest_milliseconds"]
     ].sort_values(

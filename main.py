@@ -8,6 +8,7 @@ from scatter_plot_drivers import (
     get_driver_data,
 )
 from driver_card import create_driver_card
+from circuit_to_driver import layout as circuit_to_driver_layout
 
 
 app.layout = html.Div([
@@ -50,7 +51,7 @@ app.layout = html.Div([
                        'text-align': 'center',
                        'color': 'gray',
                        'font-style': 'italic',
-                   }),
+            }),
             dcc.Graph(
                 id="career-timeline-chart",
                 style={'display': 'none'},
@@ -65,7 +66,8 @@ app.layout = html.Div([
             'min-height': '50px',
             'flex-direction': 'column'
         })
-    ], className="timeline-row")
+    ], className="timeline-row"),
+    circuit_to_driver_layout,
 ], className="dashboard-container")
 
 
