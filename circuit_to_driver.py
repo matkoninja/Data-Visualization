@@ -2,7 +2,6 @@ from dash import html, dcc, Input, Output
 import dash_daq as daq
 import pandas as pd
 import plotly.graph_objects as go
-import os
 
 from app import app
 from source import (
@@ -10,90 +9,71 @@ from source import (
     circuit_names,
     constructor_names,
     driver_names,
+    results_df,
+    races_df,
 )
 
 
 """
 ================================================================================
-                Data import
-================================================================================
-"""
-
-# Load CSVs from the local `dataset/` folder.
-here = os.path.dirname(__file__)
-data_dir = os.path.join(here, "dataset")
-
-# Read datasets used to build the diagram
-circuits_df = pd.read_csv(os.path.join(
-    data_dir, "circuits.csv"), low_memory=False)
-constructors_df = pd.read_csv(os.path.join(
-    data_dir, "constructors.csv"), low_memory=False)
-drivers_df = pd.read_csv(os.path.join(
-    data_dir, "drivers.csv"), low_memory=False)
-races_df = pd.read_csv(os.path.join(data_dir, "races.csv"), low_memory=False)
-results_df = pd.read_csv(os.path.join(
-    data_dir, "results.csv"), low_memory=False, na_values=["\\N"])
-
-
-"""
-================================================================================
-                Create circuit-constructor-driver finalists dataframe, 
+                Create circuit-constructor-driver finalists dataframe,
                 grouped by count
 ================================================================================
 """
 # ========= 1. circuit-constructor-driver dataframe ============
 
-# Use only Finalists
-results_finalists_df = results_df[results_df["position"] == 1]
 
-# race -> circuits
-race_circuit = races_df[["raceId", "circuitId"]].dropna()
+def get_parcats_data():
+    # Use only Finalists
+    results_finalists_df = results_df[results_df["position"] == 1].copy()
 
-# race -> constructors, drivers
-race_constructor_driver = \
-    results_finalists_df[["raceId",
-                          "constructorId",
-                          "driverId"]].dropna().astype({
-                              "raceId": int,
-                              "constructorId": int,
-                              "driverId": int
-                          })
+    # race -> circuits
+    race_circuit = races_df[["raceId", "circuitId"]].copy().dropna()
 
-# Merge dataframes through races
-# to get circuit-constructor-driver relationships
-circuit_constructor_driver = pd.merge(
-    race_constructor_driver,
-    race_circuit,
-    on="raceId",
-    how="inner",
-).dropna(subset=["circuitId", "constructorId", "driverId"]).astype({
-    "circuitId": int,
-    "constructorId": int,
-    "driverId": int
-})
+    # race -> constructors, drivers
+    race_constructor_driver = \
+        results_finalists_df[["raceId",
+                              "constructorId",
+                              "driverId"]].copy().dropna().astype({
+                                  "raceId": int,
+                                  "constructorId": int,
+                                  "driverId": int
+                              })
 
-# Count occurrences of each circuit-constructor-driver combination
-circuit_constructor_driver_counts = circuit_constructor_driver.groupby(
-    ["circuitId", "constructorId", "driverId"]
-).size().reset_index(name="count")
+    # Merge dataframes through races
+    # to get circuit-constructor-driver relationships
+    circuit_constructor_driver = pd.merge(
+        race_constructor_driver,
+        race_circuit,
+        on="raceId",
+        how="inner",
+    ).dropna(subset=["circuitId", "constructorId", "driverId"]).astype({
+        "circuitId": int,
+        "constructorId": int,
+        "driverId": int
+    })
+
+    # Count occurrences of each circuit-constructor-driver combination
+    circuit_constructor_driver_counts = circuit_constructor_driver.groupby(
+        ["circuitId", "constructorId", "driverId"]
+    ).size().reset_index(name="count")
+
+    df_plot = circuit_constructor_driver_counts.copy()
+
+    # Calculate total number of values in the dataframe
+    total_values = df_plot["count"].sum()
+
+    # Add labels
+    df_plot["Circuit"] = df_plot["circuitId"].map(circuit_names)
+    df_plot["Circuit_labels"] = df_plot["circuitId"].map(circuit_names_wrapped)
+    df_plot["Constructor"] = df_plot["constructorId"].map(constructor_names)
+    df_plot["Driver"] = df_plot["driverId"].map(driver_names)
+
+    return df_plot, total_values
 
 
-"""
-================================================================================
-                Final dataframe - df_plot
-================================================================================
-"""
+df_plot, total_values = get_parcats_data()
 
-df_plot = circuit_constructor_driver_counts.copy()
-
-# Calculate total number of values in the dataframe
-total_values = df_plot["count"].sum()
-
-# Add labels
-df_plot["Circuit"] = df_plot["circuitId"].map(circuit_names)
-df_plot["Circuit_labels"] = df_plot["circuitId"].map(circuit_names_wrapped)
-df_plot["Constructor"] = df_plot["constructorId"].map(constructor_names)
-df_plot["Driver"] = df_plot["driverId"].map(driver_names)
 
 """
 ================================================================================
@@ -110,46 +90,6 @@ layout = html.Div([
         "Circuits → Constructors → Drivers (Winners Only)",
         style={"padding": "10px"}
     ),
-
-    # html.Div(
-    #     id="filter-row",
-    #     children=[
-    #         dcc.Dropdown(
-    #             id="circuit-filter",
-    #             options=[{"label": v, "value": v}
-    #                      for v in sorted(circuit_names.values())],
-    #             multi=True,
-    #             placeholder="Select Circuits",
-    #             closeOnSelect=False,
-    #             style=MAIN_DROPDOWN_STYLE
-    #         ),
-
-    #         dcc.Dropdown(
-    #             id="constructor-filter",
-    #             options=[{"label": v, "value": v}
-    #                      for v in sorted(constructor_names.values())],
-    #             multi=True,
-    #             placeholder="Select Constructors",
-    #             closeOnSelect=False,
-    #             style=MAIN_DROPDOWN_STYLE
-    #         ),
-
-    #         dcc.Dropdown(
-    #             id="driver-filter",
-    #             options=[{"label": v, "value": v}
-    #                      for v in sorted(driver_names.values())],
-    #             multi=True,
-    #             placeholder="Select Drivers",
-    #             closeOnSelect=False,
-    #             style=MAIN_DROPDOWN_STYLE
-    #         )
-    #     ],
-    #     style={
-    #         "display": "flex",
-    #         "gap": "10px",
-    #         "padding": "10px",
-    #     }
-    # ),
 
     html.Div(
         children=[
@@ -265,7 +205,6 @@ def update_parcats(selected_circuits,
                    sorting_column,
                    sorting_type,
                    sort_order_clicks):
-
     dff = df_plot.copy()
 
     # ---- FILTERING ----
@@ -313,6 +252,8 @@ def update_parcats(selected_circuits,
             "values": dff["Driver"]
         }
     ]
+
+    # colors = dff["Constructor"].apply(lambda x: )
 
     # ---- CREATING PARALLEL CATEGORIES FIGURE ----
     fig = go.Figure(go.Parcats(

@@ -8,14 +8,27 @@ __all__ = [
     "circuit_names",
     "constructor_names",
     "driver_names",
+    "circuits_df",
+    "circuits_extras_df",
+    "constructors_df",
+    "drivers_df",
+    "races_df",
+    "results_df",
+    "lap_times_df",
+    "rule_changes_df",
+    "driver_standings_df",
 ]
 
 
 circuits_df = pd.read_csv("./dataset/circuits.csv")
+circuits_extras_df = pd.read_csv("./dataset/circuits_extra.csv")
 constructors_df = pd.read_csv("./dataset/constructors.csv")
 drivers_df = pd.read_csv("./dataset/drivers.csv")
 races_df = pd.read_csv("./dataset/races.csv")
-results_df = pd.read_csv("./dataset/results.csv")
+results_df = pd.read_csv("./dataset/results.csv", na_values=["\\N"])
+lap_times_df = pd.read_csv("./dataset/lap_times.csv")
+rule_changes_df = pd.read_csv("./dataset/rule_changes.csv")
+driver_standings_df = pd.read_csv("./dataset/driver_standings.csv")
 
 # Set for CIRCUITS
 circuit_names_wrapped = {}

@@ -5,6 +5,13 @@ from country import alpha2_codes
 from math import ceil, floor
 import numpy as np
 from app import app
+from source import (
+    circuits_df,
+    circuits_extras_df,
+    lap_times_df,
+    races_df,
+    rule_changes_df,
+)
 
 
 def get_circuits_info(circuits, races, circuits_extras) -> pd.DataFrame:
@@ -120,27 +127,13 @@ def transform_rule_changes(rule_changes: pd.DataFrame) -> pd.DataFrame:
 
 
 def get_circuits_data():
-    circuits = pd.read_csv(
-        "./dataset/circuits.csv",
-    )
-    races = pd.read_csv(
-        "./dataset/races.csv",
-    )
-    lap_times = pd.read_csv(
-        "./dataset/lap_times.csv",
-    )
-    circuits_extras = pd.read_csv(
-        "./dataset/circuits_extra.csv",
-    )
-    rule_changes = pd.read_csv(
-        "./dataset/rule_changes.csv",
-    )
-
-    rule_changes = transform_rule_changes(rule_changes)
-    circuits_info = get_circuits_info(circuits, races, circuits_extras)
-    fastest_lap_times = get_fastest_lap_times(circuits,
-                                              races,
-                                              lap_times,
+    rule_changes = transform_rule_changes(rule_changes_df)
+    circuits_info = get_circuits_info(circuits_df,
+                                      races_df,
+                                      circuits_extras_df)
+    fastest_lap_times = get_fastest_lap_times(circuits_df,
+                                              races_df,
+                                              lap_times_df,
                                               rule_changes)
 
     return circuits_info, fastest_lap_times, rule_changes
@@ -300,7 +293,6 @@ def draw_circuits_map(clickData=None, filterValue=None, inContext=False):
     trigger = ctx.triggered[0]["prop_id"].split(".")[0]
 
     colors = ["#636efa"] * len(circuits)
-    print(trigger)
 
     if trigger == "circuits-map":
         selected_idx = circuit_index_from_map_click(clickData)
@@ -340,7 +332,7 @@ def select_circuit_filter_from_map(clickData, filterValue):
         filterValue = []
     if circuit_name in filterValue:
         return no_update
-    return filterValue + [circuit_name]    
+    return filterValue + [circuit_name]
 
 
 app.callback(
