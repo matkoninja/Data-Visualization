@@ -10,17 +10,22 @@
 }
 
 .Select-menu-outer {
-    background-color: var(--bg-panel);
+    background-color: var(--bg-panel, #F5F5F5);
     border: 1px solid var(--border-subtle);
 }
 
 .Select-option {
-    background-color: var(--bg-panel);
-    color: var(--text-primary);
+    background-color: var(--bg-panel, #F5F5F5);
+    color: var(--text-primary, #15151E);
+}
+
+.VirtualizedSelectOption {
+    background-color: var(--bg-panel, #F5F5F5);
+    color: var(--text-primary, #15151E);
 }
 
 .Select-option.is-focused {
-    background-color: var(--secondary);
+    background-color: var(--secondary, #6E6E73);
     color: var(--bg-main);
 }
 

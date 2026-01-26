@@ -9,9 +9,110 @@ from scatter_plot_drivers import (
 )
 from driver_card import create_driver_card
 from circuit_to_driver import layout as circuit_to_driver_layout
+from source import circuit_names, constructor_names, driver_names
+
+
+MAIN_DROPDOWN_STYLE = {
+    "flex": "1",
+    "background-color": "#f9f9f9",
+}
 
 
 app.layout = html.Div([
+    html.Div(
+        [
+            # Season (Year) range slider
+            html.Div([
+                dcc.RangeSlider(min=1950,
+                                max=2025,
+                                step=1,
+                                marks={year: str(year)
+                                       for year
+                                       in range(1950, 2026, 5)},
+                                tooltip=dict(
+                                    placement="bottom",
+                                    always_visible=True,
+                                    style=dict(
+                                        fontSize="16px",
+                                    ),
+                                ),
+                                id='year-range-slider'),
+            ], style={
+                "width": "100%",
+                "padding": "2rem 1rem",
+            }),
+
+            html.Div(
+                id="filter-row",
+                children=[
+                    dcc.Dropdown(
+                        id="circuit-filter",
+                        options=[
+                            {
+                                # "label": html.Span(
+                                #     v,
+                                #     style={
+                                #         "background-color": "#e0e0e0",
+                                #     },
+                                # ),
+                                "label": v,
+                                "value": v
+                            }
+                            for v
+                            in sorted(circuit_names.values())],
+                        multi=True,
+                        placeholder="Select Circuits",
+                        closeOnSelect=False,
+                        style=MAIN_DROPDOWN_STYLE
+                    ),
+
+                    dcc.Dropdown(
+                        id="constructor-filter",
+                        options=[{"label": v, "value": v}
+                                 for v
+                                 in sorted(constructor_names.values())],
+                        multi=True,
+                        placeholder="Select Constructors",
+                        closeOnSelect=False,
+                        style=MAIN_DROPDOWN_STYLE
+                    ),
+
+                    dcc.Dropdown(
+                        id="driver-filter",
+                        options=[{"label": v, "value": v}
+                                 for v in sorted(driver_names.values())],
+                        multi=True,
+                        placeholder="Select Drivers",
+                        closeOnSelect=False,
+                        style=MAIN_DROPDOWN_STYLE
+                    )
+                ],
+                style={
+                    "display": "flex",
+                    "gap": "10px",
+                    "padding": "10px",
+                    "width": "100%",
+                }
+            ),
+
+        ],
+        style={
+            "width": "60%",
+            "margin": "0 auto",
+            "position": "sticky",
+            "top": "0",
+            "background-color": "white",
+            "z-index": "100",
+            "border-radius": "0 0 1rem 1rem",
+            "border": "1px solid #cccccc",
+            "box-shadow": "0 2px 4px rgba(0, 0, 0, 0.1)",
+            "display": "flex",
+            "flex-direction": "column",
+            "align-items": "center",
+            "gap-y": "0.5rem",
+        },
+    ),
+
     # Top row: Map + Circuit Info
     circuit_map_layout,
 
@@ -67,6 +168,7 @@ app.layout = html.Div([
             'flex-direction': 'column'
         })
     ], className="timeline-row"),
+
     circuit_to_driver_layout,
 ], className="dashboard-container")
 

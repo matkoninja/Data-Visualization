@@ -1,4 +1,4 @@
-from dash import Input, Output, html, dcc
+from dash import Input, Output, State, callback_context, html, dcc, no_update
 import pandas as pd
 import plotly.express as px
 from country import alpha2_codes
@@ -242,7 +242,7 @@ app.callback(
 )(draw_fastest_lap_times_line_chart)
 
 
-def draw_circuits_map(clickData):
+def draw_circuits_map(clickData=None, filterValue=None, inContext=False):
     fig = px.scatter_geo(
         circuits,
         lat="lat",
@@ -291,21 +291,63 @@ def draw_circuits_map(clickData):
         ),
     )
 
-    selected_circuit = circuit_index_from_map_click(clickData)
+    if not inContext:
+        return fig
 
-    if selected_circuit is not None:
-        colors = ["#636efa"] * len(circuits)
-        colors[selected_circuit] = "red"
+    ctx = callback_context
+    if not ctx.triggered:
+        return fig
+    trigger = ctx.triggered[0]["prop_id"].split(".")[0]
 
-        fig.update_traces(marker=dict(color=colors))
+    colors = ["#636efa"] * len(circuits)
+    print(trigger)
+
+    if trigger == "circuits-map":
+        selected_idx = circuit_index_from_map_click(clickData)
+        if selected_idx is not None:
+            colors[selected_idx] = "red"
+    elif (trigger == "circuit-filter"
+          and filterValue is not None
+          and len(filterValue) > 0):
+        for value in filterValue:
+            row = circuits[circuits["name"] == value].iloc[0]
+            selected_idx = circuits.index.get_loc(row.name)
+            if selected_idx is not None:
+                colors[selected_idx] = "red"
+    else:
+        return fig
+
+    fig.update_traces(marker=dict(color=colors))
 
     return fig
 
 
 app.callback(
     Output("circuits-map", "figure"),
+    # Input("circuits-map", "clickData"),
+    Input("circuit-filter", "value"),
+)(lambda filterValue: draw_circuits_map(filterValue=filterValue,
+                                        inContext=True))
+
+
+def select_circuit_filter_from_map(clickData, filterValue):
+    index = circuit_index_from_map_click(clickData)
+    if index is None:
+        return no_update
+    row = circuits.iloc[index]
+    circuit_name = row["name"]
+    if filterValue is None:
+        filterValue = []
+    if circuit_name in filterValue:
+        return no_update
+    return filterValue + [circuit_name]    
+
+
+app.callback(
+    Output("circuit-filter", "value"),
     Input("circuits-map", "clickData"),
-)(draw_circuits_map)
+    State("circuit-filter", "value"),
+)(select_circuit_filter_from_map)
 
 
 def _draw_circuit_info_children(title: str,
@@ -376,12 +418,25 @@ DEFAULT_CIRCUIT_INFO = [
 ]
 
 
-def draw_circuit_info_children(clickData):
-    if clickData is None:
+def draw_circuit_info_children(clickData, filterValue):
+    ctx = callback_context
+
+    if not ctx.triggered:
+        return no_update
+
+    trigger = ctx.triggered[0]["prop_id"].split(".")[0]
+
+    if trigger == "circuits-map":
+        row = (None
+               if clickData is None
+               else circuit_from_map_click(clickData))
+    elif trigger == "circuit-filter":
+        row = (None
+               if filterValue is None or len(filterValue) == 0
+               else circuits[circuits["name"] == filterValue[-1]].iloc[0])
+
+    if row is None:
         return _draw_circuit_info_children(*DEFAULT_CIRCUIT_INFO)
-
-    row = circuit_from_map_click(clickData)
-
     return _draw_circuit_info_children(
         row["name"],
         f"{row['location']}, {row['country']}",
@@ -402,6 +457,7 @@ def draw_circuit_info_children(clickData):
 app.callback(
     Output("circuit-info", "children"),
     Input("circuits-map", "clickData"),
+    Input("circuit-filter", "value"),
 )(draw_circuit_info_children)
 
 
@@ -410,7 +466,7 @@ layout = html.Div(
         html.Div(
             [
                 dcc.Graph(
-                    figure=draw_circuits_map(None),
+                    figure=draw_circuits_map(),
                     id="circuits-map",
                     style={
                         "flex": "1 1 0",
