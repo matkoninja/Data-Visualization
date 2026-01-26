@@ -316,7 +316,6 @@ def draw_circuits_map(clickData=None, filterValue=None, inContext=False):
 
 app.callback(
     Output("circuits-map", "figure"),
-    # Input("circuits-map", "clickData"),
     Input("circuit-filter", "value"),
 )(lambda filterValue: draw_circuits_map(filterValue=filterValue,
                                         inContext=True))
@@ -460,10 +459,7 @@ layout = html.Div(
                 dcc.Graph(
                     figure=draw_circuits_map(),
                     id="circuits-map",
-                    style={
-                        "flex": "1 1 0",
-                        "border": "1px solid #ccc",
-                    },
+                    className="circuits-map",
                 ),
                 html.Div(
                     None,
