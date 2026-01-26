@@ -21,80 +21,107 @@ MAIN_DROPDOWN_STYLE = {
 app.layout = html.Div([
     html.Div(
         [
-            # Season (Year) range slider
-            html.Div([
-                dcc.RangeSlider(min=1950,
-                                max=2025,
-                                step=1,
-                                marks={year: str(year)
-                                       for year
-                                       in range(1950, 2026, 5)},
-                                tooltip=dict(
-                                    placement="bottom",
-                                    always_visible=True,
-                                    style=dict(
-                                        fontSize="16px",
-                                    ),
-                                ),
-                                id='year-range-slider'),
-            ], style={
-                "width": "100%",
-                "padding": "2rem 1rem",
-            }),
-
+            # Collapse/Expand button
             html.Div(
-                id="filter-row",
-                children=[
-                    dcc.Dropdown(
-                        id="circuit-filter",
-                        options=[
-                            {
-                                # "label": html.Span(
-                                #     v,
-                                #     style={
-                                #         "background-color": "#e0e0e0",
-                                #     },
-                                # ),
-                                "label": v,
-                                "value": v
-                            }
-                            for v
-                            in sorted(circuit_names.values())],
-                        multi=True,
-                        placeholder="Select Circuits",
-                        closeOnSelect=False,
-                        style=MAIN_DROPDOWN_STYLE
+                [
+                    html.Button(
+                        "Collapse",
+                        id="filters-button",
+                        style={
+                            "font-size": "16px",
+                            "padding": "0 1rem",
+                            "border-radius": "8px",
+                            "border": "1px solid #cccccc",
+                            "background-color": "#f0f0f0",
+                            "cursor": "pointer",
+                        },
                     ),
-
-                    dcc.Dropdown(
-                        id="constructor-filter",
-                        options=[{"label": v, "value": v}
-                                 for v
-                                 in sorted(constructor_names.values())],
-                        multi=True,
-                        placeholder="Select Constructors",
-                        closeOnSelect=False,
-                        style=MAIN_DROPDOWN_STYLE
-                    ),
-
-                    dcc.Dropdown(
-                        id="driver-filter",
-                        options=[{"label": v, "value": v}
-                                 for v in sorted(driver_names.values())],
-                        multi=True,
-                        placeholder="Select Drivers",
-                        closeOnSelect=False,
-                        style=MAIN_DROPDOWN_STYLE
-                    )
+                    dcc.Store(id="filters-collapsed"),
                 ],
                 style={
+                    "height": "2rem",
                     "display": "flex",
-                    "gap": "10px",
-                    "padding": "10px",
-                    "width": "100%",
-                }
+                    "align-items": "center",
+                    "justify-content": "center",
+                },
             ),
 
+            # Filters container
+            html.Div([
+                # Season (Year) range slider
+                html.Div([
+                    dcc.RangeSlider(min=1950,
+                                    max=2025,
+                                    step=1,
+                                    marks={year: str(year)
+                                           for year
+                                           in range(1950, 2026, 5)},
+                                    tooltip=dict(
+                                        placement="bottom",
+                                        always_visible=True,
+                                        style=dict(
+                                            fontSize="16px",
+                                        ),
+                                    ),
+                                    id='year-range-slider'),
+                ], style={
+                    "width": "100%",
+                    "padding": "0 1rem",
+                }),
+
+                # Dropdown Filters: Circuit, Constructor, Driver
+                html.Div(
+                    id="filter-row",
+                    children=[
+                        # Circuit
+                        dcc.Dropdown(
+                            id="circuit-filter",
+                            options=[{"label": v, "value": v}
+                                     for v
+                                     in sorted(circuit_names.values())],
+                            multi=True,
+                            placeholder="Select Circuits",
+                            closeOnSelect=False,
+                            style=MAIN_DROPDOWN_STYLE
+                        ),
+
+                        # Constructor
+                        dcc.Dropdown(
+                            id="constructor-filter",
+                            options=[{"label": v, "value": v}
+                                     for v
+                                     in sorted(constructor_names.values())],
+                            multi=True,
+                            placeholder="Select Constructors",
+                            closeOnSelect=False,
+                            style=MAIN_DROPDOWN_STYLE
+                        ),
+
+                        # Driver
+                        dcc.Dropdown(
+                            id="driver-filter",
+                            options=[{"label": v, "value": v}
+                                     for v in sorted(driver_names.values())],
+                            multi=True,
+                            placeholder="Select Drivers",
+                            closeOnSelect=False,
+                            style=MAIN_DROPDOWN_STYLE
+                        )
+                    ],
+                    style={
+                        "display": "flex",
+                        "gap": "10px",
+                        "padding": "10px",
+                        "width": "100%",
+                    }
+                ),
+            ], style={
+                "width": "100%",
+                "display": "flex",
+                "flex-direction": "column",
+                "align-items": "center",
+                "gap-y": "0.5rem",
+            }, id="filters-container"),
         ],
         style={
             "width": "60%",
@@ -171,6 +198,34 @@ app.layout = html.Div([
 
     circuit_to_driver_layout,
 ], className="dashboard-container")
+
+
+@app.callback(
+    Output("filters-collapsed", "data"),
+    Output("filters-container", "style"),
+    Output("filters-button", "children"),
+    Input("filters-button", "n_clicks"),
+    State("filters-collapsed", "data"),
+    State("filters-container", "style"),
+)
+def toggle_filters(n_clicks, collapsed, current_style):
+    if n_clicks:
+        collapsed = not collapsed if collapsed is not None else True
+    else:
+        collapsed = False
+
+    style = current_style.copy()
+    if collapsed:
+        style.update({
+            "display": "none",
+        })
+    else:
+        style.update({
+            "display": "flex",
+        })
+    return (collapsed,
+            style,
+            "Expand Filters" if collapsed else "Collapse Filters")
 
 
 @app.callback(
