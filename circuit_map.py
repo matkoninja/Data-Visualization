@@ -58,7 +58,7 @@ def get_circuits_info(circuits, races, circuits_extras) -> pd.DataFrame:
 def format_lap_time_ms(ms):
     minutes = ms // 60000
     seconds = (ms % 60000) / 1000
-    return f"{minutes}:{seconds:06.3f}"
+    return f"{minutes:.0f}:{seconds:06.3f}"
 
 
 def format_lap_time_s(ms):
@@ -107,12 +107,13 @@ def get_fastest_lap_times(circuits: pd.DataFrame,
         how="left"
     )
 
-    fastest_per_circuit_year["hovertemplate"] = \
-        fastest_per_circuit_year["label"].apply(
-            lambda x: (("<b>%{customdata[0]}</b><br>"
-                       "(%{customdata[2]}) %{customdata[1]}")
-                       if pd.notna(x)
-                       else "<b>%{customdata[0]}</b>")
+    fastest_per_circuit_year["hovertext"] = fastest_per_circuit_year.apply(
+        lambda row: (
+            (f"({row['impact']}) {row['label']}<br />"
+             f"<b>{row['fastest_lap']}</b>")
+            if pd.notna(row["label"]) and pd.notna(row["impact"])
+            else f"<b>{row['fastest_lap']}</b>"),
+        axis=1,
     )
 
     return fastest_per_circuit_year
@@ -162,13 +163,45 @@ def circuit_from_map_click(clickData):
     return circuits.iloc[index]
 
 
-def draw_fastest_lap_times_line_chart(clickData):
-    selected_circuit_ = (circuit_from_map_click(clickData)
-                         if clickData is not None
-                         else circuits.iloc[0])
+def draw_fastest_lap_times_line_chart(filterValue):
+    if (filterValue is None or len(filterValue) == 0):
+        filterValue = []
 
-    circuit_lap_times = fastest_lap_times[fastest_lap_times["circuitRef"]
-                                          == selected_circuit_["circuitRef"]]
+    selected_circuits = (circuits[circuits["name"].isin(filterValue)]
+                         if filterValue is not None and len(filterValue) > 0
+                         else pd.DataFrame(columns=circuits.columns))
+    if len(selected_circuits) == 0:
+        circuit_lap_times = (fastest_lap_times
+                             .groupby("year", as_index=False)
+                             .agg(fastest_milliseconds=("fastest_milliseconds",
+                                                        "mean"))
+                             .sort_values("year"))
+        circuit_lap_times["fastest_lap"] = \
+            circuit_lap_times["fastest_milliseconds"].apply(
+                format_lap_time_ms
+        )
+
+        circuit_lap_times = circuit_lap_times.merge(
+            rule_changes[["year", "impact", "label"]],
+            on="year",
+            how="left"
+        )
+
+        circuit_lap_times["hovertext"] = circuit_lap_times.apply(
+            lambda row: (
+                (f"({row['impact']}) {row['label']}<br />"
+                 f"<b>{row['fastest_lap']}</b>")
+                if pd.notna(row["label"]) and pd.notna(row["impact"])
+                else f"<b>{row['fastest_lap']}</b>"),
+            axis=1,
+        )
+        first_circuit = None
+    else:
+        first_circuit = selected_circuits.iloc[0]["circuitRef"]
+
+        lap_times_mask = (fastest_lap_times["circuitRef"]
+                          .isin(selected_circuits["circuitRef"]))
+        circuit_lap_times = fastest_lap_times[lap_times_mask]
 
     times_with_format = circuit_lap_times[
         ["fastest_lap", "fastest_milliseconds"]
@@ -179,10 +212,15 @@ def draw_fastest_lap_times_line_chart(clickData):
         circuit_lap_times,
         x="year",
         y="fastest_milliseconds",
-        title=f"Fastest Lap Times at {selected_circuit_['name']}",
+        color=("circuitRef" if len(selected_circuits) > 0 else None),
+        title=("Fastest Lap Times at "
+               + ', '.join(selected_circuits['name'].values)
+               if len(selected_circuits) > 0
+               else "Average Fastest Lap Times Across All Circuits"),
         labels={
             "year": "Year",
-            "fastest_milliseconds": "Fastest Lap Time"
+            "fastest_milliseconds": "Fastest Lap Time",
+            "circuitRef": "Circuit",
         },
         markers=True,
         category_orders={
@@ -190,7 +228,7 @@ def draw_fastest_lap_times_line_chart(clickData):
         },
         range_x=[circuit_lap_times["year"].min() - 1,
                  circuit_lap_times["year"].max() + 1],
-        custom_data=["fastest_lap", "label", "impact"],
+        custom_data=["fastest_lap", "hovertext"],
     )
 
     min_time_raw = circuit_lap_times["fastest_milliseconds"].min()
@@ -220,10 +258,24 @@ def draw_fastest_lap_times_line_chart(clickData):
             tickvals=ticks_vals,
             ticktext=ticks_texts,
         ),
-        hovermode="x",
+        hovermode="x unified",
     )
     fig.update_traces(
-        hovertemplate=circuit_lap_times["hovertemplate"],
+        hovertemplate="%{customdata[1]}<br><extra></extra>",
+    )
+
+    if first_circuit is None:
+        return fig
+
+    fig.for_each_trace(
+        lambda trace: trace.update(
+            hovertemplate=("<b>%{customdata[0]}</b><br><extra></extra>"
+                           if trace.name != first_circuit
+                           else "%{customdata[1]}<br><extra></extra>"),
+            name=selected_circuits[
+                selected_circuits["circuitRef"] == trace.name
+            ]["name"].values[0],
+        )
     )
 
     return fig
@@ -231,7 +283,7 @@ def draw_fastest_lap_times_line_chart(clickData):
 
 app.callback(
     Output("circuits-lap-times", "figure"),
-    Input("circuits-map", "clickData"),
+    Input("circuit-filter", "value"),
 )(draw_fastest_lap_times_line_chart)
 
 
@@ -322,15 +374,17 @@ app.callback(
 
 
 def select_circuit_filter_from_map(clickData, filterValue):
-    index = circuit_index_from_map_click(clickData)
-    if index is None:
+    row = circuit_from_map_click(clickData)
+    if row is None:
         return no_update
-    row = circuits.iloc[index]
+
     circuit_name = row["name"]
     if filterValue is None:
         filterValue = []
+
     if circuit_name in filterValue:
-        return no_update
+        filterValue.remove(circuit_name)
+        return filterValue
     return filterValue + [circuit_name]
 
 
@@ -409,22 +463,10 @@ DEFAULT_CIRCUIT_INFO = [
 ]
 
 
-def draw_circuit_info_children(clickData, filterValue):
-    ctx = callback_context
-
-    if not ctx.triggered:
-        return no_update
-
-    trigger = ctx.triggered[0]["prop_id"].split(".")[0]
-
-    if trigger == "circuits-map":
-        row = (None
-               if clickData is None
-               else circuit_from_map_click(clickData))
-    elif trigger == "circuit-filter":
-        row = (None
-               if filterValue is None or len(filterValue) == 0
-               else circuits[circuits["name"] == filterValue[-1]].iloc[0])
+def draw_circuit_info_children(filterValue):
+    row = (None
+           if filterValue is None or len(filterValue) == 0
+           else circuits[circuits["name"] == filterValue[-1]].iloc[0])
 
     if row is None:
         return _draw_circuit_info_children(*DEFAULT_CIRCUIT_INFO)
@@ -447,7 +489,6 @@ def draw_circuit_info_children(clickData, filterValue):
 
 app.callback(
     Output("circuit-info", "children"),
-    Input("circuits-map", "clickData"),
     Input("circuit-filter", "value"),
 )(draw_circuit_info_children)
 
