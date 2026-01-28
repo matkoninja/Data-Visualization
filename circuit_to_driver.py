@@ -12,6 +12,8 @@ from source import (
     results_df,
     races_df,
 )
+from teams import map_team, team_colors
+from utils import rgba
 
 
 """
@@ -42,7 +44,7 @@ def get_parcats_data():
 
     # Merge dataframes through races
     # to get circuit-constructor-driver relationships
-    circuit_constructor_driver = pd.merge(
+    df_plot = pd.merge(
         race_constructor_driver,
         race_circuit,
         on="raceId",
@@ -53,21 +55,16 @@ def get_parcats_data():
         "driverId": int
     })
 
-    # Count occurrences of each circuit-constructor-driver combination
-    circuit_constructor_driver_counts = circuit_constructor_driver.groupby(
-        ["circuitId", "constructorId", "driverId"]
-    ).size().reset_index(name="count")
-
-    df_plot = circuit_constructor_driver_counts.copy()
-
     # Calculate total number of values in the dataframe
-    total_values = df_plot["count"].sum()
+    total_values = len(df_plot)
 
     # Add labels
     df_plot["Circuit"] = df_plot["circuitId"].map(circuit_names)
     df_plot["Circuit_labels"] = df_plot["circuitId"].map(circuit_names_wrapped)
     df_plot["Constructor"] = df_plot["constructorId"].map(constructor_names)
     df_plot["Driver"] = df_plot["driverId"].map(driver_names)
+    df_plot["team_group"] = df_plot["Constructor"].apply(map_team)
+    df_plot["color"] = df_plot["team_group"].map(team_colors)
 
     return df_plot, total_values
 
@@ -197,6 +194,9 @@ layout = html.Div([
 """
 
 
+COLOR_ALPHA = 0.6
+
+
 def update_parcats(selected_circuits,
                    selected_constructors,
                    selected_drivers,
@@ -234,49 +234,110 @@ def update_parcats(selected_circuits,
         else:
             dff = dff.sort_values(by=sorting_column, ascending=sort_ascending)
 
+    dff["count"] = 1
+
     # ---- FIRST number_of_records RECORDS ----
     dff = dff.head(number_of_records)
 
-    # ---- CREATING DIMENSIONS ----
-    dimensions = [
-        {
-            "label": "Circuits",
-            "values": dff["Circuit_labels"]
-        },
-        {
-            "label": "Constructors",
-            "values": dff["Constructor"]
-        },
-        {
-            "label": "Drivers",
-            "values": dff["Driver"]
-        }
-    ]
+    # =========================================================
+    # SANKEY PREP
+    # =========================================================
 
-    # colors = dff["Constructor"].apply(lambda x: )
+    # Aggregate flows
+    c_to_c = (
+        dff.groupby(["Circuit", "Constructor"])["count"]
+        .sum()
+        .reset_index()
+    )
 
-    # ---- CREATING PARALLEL CATEGORIES FIGURE ----
-    fig = go.Figure(go.Parcats(
-        dimensions=dimensions,
-        arrangement="freeform",
-        counts=dff["count"],
-        line=dict(
-            shape="hspline",
-            color="#C4C4C4"
+    c_to_d = (
+        dff.groupby(["Constructor", "Driver"])["count"]
+        .sum()
+        .reset_index()
+    )
+
+    # Create node list
+    nodes = pd.Index(
+        pd.concat([
+            c_to_c["Circuit"],
+            c_to_c["Constructor"],
+            c_to_d["Driver"],
+        ]).unique()
+    )
+
+    node_index = {name: i for i, name in enumerate(nodes)}
+
+    node_colors = (["#B0B0B0"
+                    for _
+                    in range(len(c_to_c["Circuit"].unique()))]
+                   + [team_colors.get(map_team(name), "#B0B0B0")
+                      for name
+                      in c_to_c["Constructor"].unique()
+                      ]
+                   + ["#E0E0E0"
+                      for _
+                      in range(len(c_to_d["Driver"].unique()))])
+
+    # Build links
+    sources = []
+    targets = []
+    values = []
+    hover = []
+    line_colors = []
+
+    # Circuit → Constructor
+    for _, r in c_to_c.iterrows():
+        sources.append(node_index[r["Circuit"]])
+        targets.append(node_index[r["Constructor"]])
+        values.append(r["count"])
+        hover.append(f"<b>{r['Constructor']}</b> at <b>{r['Circuit']}</b>"
+                     f"<br><b>{r['count']}</b> wins")
+        color = team_colors.get(map_team(r["Constructor"]), "#B0B0B0")
+        line_colors.append(rgba(color, COLOR_ALPHA))
+
+    # Constructor → Driver
+    for _, r in c_to_d.iterrows():
+        sources.append(node_index[r["Constructor"]])
+        targets.append(node_index[r["Driver"]])
+        values.append(r["count"])
+        hover.append(f"<b>{r['Driver']}</b> at <b>{r['Constructor']}</b>"
+                     f"<br><b>{r['count']}</b> wins")
+        color = team_colors.get(map_team(r["Constructor"]), "#B0B0B0")
+        line_colors.append(rgba(color, COLOR_ALPHA))
+
+    # =========================================================
+    # SANKEY FIGURE
+    # =========================================================
+
+    fig = go.Figure(
+        go.Sankey(
+            arrangement="snap",
+            node=dict(
+                label=nodes.tolist(),
+                pad=15,
+                thickness=15,
+                color=node_colors,
+                line=dict(color="#15151E", width=0.5),
+                hovertemplate=(
+                    "<b>%{label}</b><br>"
+                    "<b>%{value:d}</b> wins<extra></extra>"
+                ),
+            ),
+            link=dict(
+                source=sources,
+                target=targets,
+                value=values,
+                hovertemplate="%{customdata}<extra></extra>",
+                customdata=hover,
+                color=line_colors,
+            ),
         )
-    ))
-
-    fig.update_traces(
-        labelfont=dict(size=16, color="#15151E"),
-        tickfont=dict(size=11, color="#15151E")
     )
 
     fig.update_layout(
         margin=dict(t=50, l=50, r=50, b=50),
-
     )
 
-    # ---- OUTPUT FIGURE & UPDATE BUTTON TEXT ----
     return fig, arrow_text
 
 
