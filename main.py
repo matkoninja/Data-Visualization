@@ -230,10 +230,14 @@ def toggle_filters(n_clicks, collapsed, current_style):
 
 @app.callback(
     Output("driver-careers-chart", "figure"),
-    Input("career-mode", "value")
+    Input("career-mode", "value"),
+    Input("constructor-filter", "value")
 )
-def update_chart(mode):
-    return create_career_plot(mode=mode).update_layout()
+def update_chart(mode, constructor_filter):
+    return create_career_plot(
+        mode=mode,
+        constructor_filter=constructor_filter,
+    ).update_layout()
 
 
 @app.callback(

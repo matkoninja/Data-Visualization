@@ -104,10 +104,6 @@ end_points['type'] = 'End'
 end_points['age'] = end_points['year'] - \
     pd.to_datetime(end_points['dob']).dt.year
 
-# Map teams
-start_points['team_group'] = start_points['team'].apply(map_team)
-end_points['team_group'] = end_points['team'].apply(map_team)
-
 # --- DRIVER STATISTICS ---
 wins = df[df['positionOrder'] == 1].groupby('driverId').size()
 podiums = df[df['positionOrder'] <= 3].groupby('driverId').size()
@@ -180,16 +176,35 @@ def add_jitter(df, x_col='year', y_col='age', jitter_amount=0.3):
 # In scatter_plot_drivers.py - update create_career_plot function
 
 
-def create_career_plot(mode='start', enable_jitter=True):
+def create_career_plot(mode='start',
+                       enable_jitter=True,
+                       constructor_filter=None):
     """Create career plot with improved legend and disclaimer"""
+    # Filter by constructor if provided
+    if constructor_filter:
+        start_points_filtered = start_points.copy()[
+            start_points['team'].isin(constructor_filter)
+        ]
+        end_points_filtered = end_points.copy()[
+            end_points['team'].isin(constructor_filter)
+        ]
+    else:
+        start_points_filtered = start_points.copy()
+        end_points_filtered = end_points.copy()
+
+    # Map teams
+    start_points_filtered['team_group'] = \
+        start_points_filtered['team'].apply(map_team)
+    end_points_filtered['team_group'] = \
+        end_points_filtered['team'].apply(map_team)
 
     # Apply jittering
     if enable_jitter:
-        start_plot = add_jitter(start_points)
-        end_plot = add_jitter(end_points)
+        start_plot = add_jitter(start_points_filtered)
+        end_plot = add_jitter(end_points_filtered)
     else:
-        start_plot = start_points.copy()
-        end_plot = end_points.copy()
+        start_plot = start_points_filtered.copy()
+        end_plot = end_points_filtered.copy()
         start_plot['jittered_x'] = start_plot['year']
         start_plot['jittered_y'] = start_plot['age']
         end_plot['jittered_x'] = end_plot['year']
