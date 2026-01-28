@@ -97,9 +97,5 @@ def create_driver_card(driver_data, link):
                 'cursor': 'pointer',
             },
         ),
-
-        # Hidden div to store driver ID for career timeline
-        html.Div(id='driver-id-storage',
-                 children=driver_data['driverId'], style={'display': 'none'})
     ], className="enhanced-driver-card")
     return card_content

@@ -18,6 +18,33 @@ MAIN_DROPDOWN_STYLE = {
 }
 
 
+def display_driver_card(clickData):
+    if not clickData:
+        return html.Div([
+            html.Span("Click on a driver point to view details"),
+            html.Button(id="show-career-timeline",
+                        style={"display": "none"})],
+            className="card-placeholder"), None
+    try:
+        point = clickData['points'][0]
+        driver_id = point['customdata'][0]
+        driver_data = career[career['driverId'] == driver_id].iloc[0]
+        tmp_driver_data = get_driver_data(driver_id)
+        driver_url = (tmp_driver_data['url']
+                      if not tmp_driver_data.empty
+                      else "")
+        return create_driver_card(driver_data, driver_url), driver_id
+    except (IndexError, KeyError, AttributeError):
+        return html.Div("Driver data not found", className="card-error"), None
+
+
+app.callback(
+    Output("driver-card", "children"),
+    Output("driver-id-storage", "data"),
+    Input("driver-careers-chart", "clickData")
+)(display_driver_card)
+
+
 app.layout = html.Div([
     html.Div(
         [
@@ -149,6 +176,7 @@ app.layout = html.Div([
 
     # Middle row: Driver careers scatter plot + driver card
     html.Div([
+        dcc.Store(id='driver-id-storage'),
         html.Div([
             html.H3('Chart view:', className="driver-name"),
             dcc.RadioItems(
@@ -165,6 +193,7 @@ app.layout = html.Div([
                 className="main-chart"
             ),
             html.Div(
+                display_driver_card(None),
                 id="driver-card",
                 className="driver-card"
             )
@@ -251,8 +280,7 @@ def update_chart(mode, constructor_filter, driver_filter):
     Output("career-timeline-chart", "style"),
     Output("timeline-instruction", "style"),
     Input("show-career-timeline", "n_clicks"),
-    State("driver-id-storage", "children"),
-    prevent_initial_call=True
+    State("driver-id-storage", "data"),
 )
 def show_career_timeline(n_clicks, driver_id):
     if n_clicks and n_clicks > 0 and driver_id:
@@ -271,27 +299,6 @@ def show_career_timeline(n_clicks, driver_id):
 
 
 career = get_career_data()
-
-
-@app.callback(
-    Output("driver-card", "children"),
-    Input("driver-careers-chart", "clickData")
-)
-def display_driver_card(clickData):
-    if not clickData:
-        return html.Div("Click on a driver point to view details",
-                        className="card-placeholder")
-    try:
-        point = clickData['points'][0]
-        driver_id = point['customdata'][0]
-        driver_data = career[career['driverId'] == driver_id].iloc[0]
-        tmp_driver_data = get_driver_data(driver_id)
-        driver_url = (tmp_driver_data['url']
-                      if not tmp_driver_data.empty
-                      else "")
-        return create_driver_card(driver_data, driver_url)
-    except (IndexError, KeyError, AttributeError):
-        return html.Div("Driver data not found", className="card-error")
 
 
 if __name__ == "__main__":
