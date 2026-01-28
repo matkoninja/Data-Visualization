@@ -100,8 +100,12 @@ app.layout = html.Div([
                         # Driver
                         dcc.Dropdown(
                             id="driver-filter",
-                            options=[{"label": v, "value": v}
-                                     for v in sorted(driver_names.values())],
+                            options=[
+                                {"label": v, "value": k}
+                                for k, v
+                                in sorted(driver_names.items(),
+                                          key=lambda item: item[1])
+                            ],
                             multi=True,
                             placeholder="Select Drivers",
                             closeOnSelect=False,
@@ -231,12 +235,14 @@ def toggle_filters(n_clicks, collapsed, current_style):
 @app.callback(
     Output("driver-careers-chart", "figure"),
     Input("career-mode", "value"),
-    Input("constructor-filter", "value")
+    Input("constructor-filter", "value"),
+    Input("driver-filter", "value")
 )
-def update_chart(mode, constructor_filter):
+def update_chart(mode, constructor_filter, driver_filter):
     return create_career_plot(
         mode=mode,
         constructor_filter=constructor_filter,
+        driver_filter=driver_filter,
     ).update_layout()
 
 

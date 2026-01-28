@@ -215,7 +215,7 @@ def update_parcats(selected_circuits,
         dff = dff[dff["Constructor"].isin(selected_constructors)]
 
     if selected_drivers:
-        dff = dff[dff["Driver"].isin(selected_drivers)]
+        dff = dff[dff["driverId"].isin(selected_drivers)]
 
     # ---- SORTING ----
     sort_ascending = (sort_order_clicks % 2) == 0
