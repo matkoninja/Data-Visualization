@@ -197,14 +197,14 @@ layout = html.Div([
 COLOR_ALPHA = 0.6
 
 
-def update_parcats(selected_circuits,
-                   selected_constructors,
-                   selected_drivers,
-                   number_of_records,
-                   do_sort,
-                   sorting_column,
-                   sorting_type,
-                   sort_order_clicks):
+def update_sankey(selected_circuits,
+                  selected_constructors,
+                  selected_drivers,
+                  number_of_records,
+                  do_sort,
+                  sorting_column,
+                  sorting_type,
+                  sort_order_clicks):
     dff = df_plot.copy()
 
     # ---- FILTERING ----
@@ -223,7 +223,10 @@ def update_parcats(selected_circuits,
 
     if do_sort:
         if sorting_type == "count":
-            column_order = dff.groupby(sorting_column)[
+            counts = dff.groupby(
+                ["Circuit", "Constructor", "Driver"]
+            ).size().reset_index(name="count")
+            column_order = counts.groupby(sorting_column)[
                 "count"].sum().sort_values(ascending=sort_ascending)
             dff[sorting_column] = pd.Categorical(
                 dff[sorting_column],
@@ -305,6 +308,38 @@ def update_parcats(selected_circuits,
         color = team_colors.get(map_team(r["Constructor"]), "#B0B0B0")
         line_colors.append(rgba(color, COLOR_ALPHA))
 
+    # ---- SANKEY NODE SORTING (ParCats equivalent) ----
+    node_y = [None] * len(nodes)
+
+    if do_sort:
+        if sorting_type == "count":
+            sort_col = {
+                "Driver": "driverId",
+                "Constructor": "Constructor",
+                "Circuit": "Circuit",
+            }[sorting_column]
+
+            # Only sort drivers that exist in nodes
+            totals = (
+                dff.groupby(sort_col)["count"]
+                .sum()
+                .sort_values(ascending=sort_ascending)
+            )
+
+        else:
+            totals = pd.Series(
+                data=range(len(nodes)),
+                index=nodes
+            ).sort_values(ascending=sort_ascending)
+
+        # compute step
+        step = 1 / (len(totals) + 1)
+
+        for i, item in enumerate(totals.index, start=1):
+            # map item to node index
+            if item in node_index:
+                node_y[node_index[item]] = i * step
+
     # =========================================================
     # SANKEY FIGURE
     # =========================================================
@@ -322,6 +357,7 @@ def update_parcats(selected_circuits,
                     "<b>%{label}</b><br>"
                     "<b>%{value:d}</b> wins<extra></extra>"
                 ),
+                y=node_y,
             ),
             link=dict(
                 source=sources,
@@ -354,4 +390,4 @@ app.callback(
     Input("sort-by-column", "value"),
     Input("sort-by-parameter", "value"),
     Input("sort-order", "n_clicks")
-)(update_parcats)
+)(update_sankey)
