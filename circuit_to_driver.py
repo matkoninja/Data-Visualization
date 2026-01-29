@@ -74,7 +74,7 @@ def get_parcats_data(season_filter=None):
     return df_plot, total_values
 
 
-df_plot, total_values = get_parcats_data()
+_, total_values = get_parcats_data()
 
 
 """
@@ -208,10 +208,7 @@ def update_parcats(selected_circuits,
                    sorting_column,
                    sorting_type,
                    sort_order_clicks):
-    cache_data = get_parcats_data(season_filter)
-    print(cache_data)
-    df_plot, _ = cache_data
-    dff = df_plot.copy()
+    dff, _ = get_parcats_data(season_filter)
 
     # ---- FILTERING ----
     if selected_circuits:
