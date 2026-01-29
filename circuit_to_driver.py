@@ -242,6 +242,51 @@ def update_sankey(selected_circuits,
     # ---- FIRST number_of_records RECORDS ----
     dff = dff.head(number_of_records)
 
+    circuit_order = dff["Circuit"].unique().tolist()
+    constructor_order = dff["Constructor"].unique().tolist()
+    driver_order = dff["Driver"].unique().tolist()
+
+    if do_sort:
+        if sorting_column == "Constructor":
+            if sorting_type == "count":
+                constructor_order = (
+                    dff.groupby("Constructor")["count"]
+                    .sum()
+                    .sort_values(ascending=sort_ascending)
+                    .index.tolist()
+                )
+            else:
+                constructor_order = sorted(
+                    dff["Constructor"].unique(),
+                    reverse=not sort_ascending
+                )
+        elif sorting_column == "Circuit":
+            if sorting_type == "count":
+                circuit_order = (
+                    dff.groupby("Circuit")["count"]
+                    .sum()
+                    .sort_values(ascending=sort_ascending)
+                    .index.tolist()
+                )
+            else:
+                circuit_order = sorted(
+                    dff["Circuit"].unique(),
+                    reverse=not sort_ascending
+                )
+        elif sorting_column == "Driver":
+            if sorting_type == "count":
+                driver_order = (
+                    dff.groupby("Driver")["count"]
+                    .sum()
+                    .sort_values(ascending=sort_ascending)
+                    .index.tolist()
+                )
+            else:
+                driver_order = sorted(
+                    dff["Driver"].unique(),
+                    reverse=not sort_ascending
+                )
+
     # =========================================================
     # SANKEY PREP
     # =========================================================
@@ -260,26 +305,63 @@ def update_sankey(selected_circuits,
     )
 
     # Create node list
-    nodes = pd.Index(
-        pd.concat([
-            c_to_c["Circuit"],
-            c_to_c["Constructor"],
-            c_to_d["Driver"],
-        ]).unique()
+    # nodes = pd.Index(
+    #     pd.concat([
+    #         c_to_c["Circuit"],
+    #         c_to_c["Constructor"],
+    #         c_to_d["Driver"],
+    #     ]).unique()
+    # )
+    nodes = (
+        circuit_order
+        + constructor_order
+        + driver_order
     )
 
     node_index = {name: i for i, name in enumerate(nodes)}
 
-    node_colors = (["#B0B0B0"
-                    for _
-                    in range(len(c_to_c["Circuit"].unique()))]
-                   + [team_colors.get(map_team(name), "#B0B0B0")
-                      for name
-                      in c_to_c["Constructor"].unique()
-                      ]
-                   + ["#E0E0E0"
-                      for _
-                      in range(len(c_to_d["Driver"].unique()))])
+    # node_colors = (["#B0B0B0"
+    #                 for _
+    #                 in range(len(c_to_c["Circuit"].unique()))]
+    #                + [team_colors.get(map_team(name), "#B0B0B0")
+    #                   for name
+    #                   in c_to_c["Constructor"].unique()
+    #                   ]
+    #                + ["#E0E0E0"
+    #                   for _
+    #                   in range(len(c_to_d["Driver"].unique()))])
+    node_colors = (
+        ["#B0B0B0"
+         for _
+         in circuit_order]
+        + [team_colors.get(map_team(name), "#B0B0B0")
+           for name
+           in constructor_order
+           ]
+        + ["#E0E0E0"
+           for _
+           in driver_order]
+    )
+
+    def spaced(n):
+        if n <= 1:
+            return [0.5]
+        return [i / (n - 1) for i in range(n)]
+
+    node_y = (
+        spaced(len(circuit_order))
+        + spaced(len(constructor_order))
+        + spaced(len(driver_order))
+    )
+
+    print(nodes)
+    print(node_y)
+
+    node_x = (
+        [0.0] * len(circuit_order)
+        + [0.5] * len(constructor_order)
+        + [1.0] * len(driver_order)
+    )
 
     # Build links
     sources = []
@@ -308,55 +390,24 @@ def update_sankey(selected_circuits,
         color = team_colors.get(map_team(r["Constructor"]), "#B0B0B0")
         line_colors.append(rgba(color, COLOR_ALPHA))
 
-    # ---- SANKEY NODE SORTING (ParCats equivalent) ----
-    node_y = [None] * len(nodes)
-
-    if do_sort:
-        if sorting_type == "count":
-            sort_col = {
-                "Driver": "driverId",
-                "Constructor": "Constructor",
-                "Circuit": "Circuit",
-            }[sorting_column]
-
-            # Only sort drivers that exist in nodes
-            totals = (
-                dff.groupby(sort_col)["count"]
-                .sum()
-                .sort_values(ascending=sort_ascending)
-            )
-
-        else:
-            totals = pd.Series(
-                data=range(len(nodes)),
-                index=nodes
-            ).sort_values(ascending=sort_ascending)
-
-        # compute step
-        step = 1 / (len(totals) + 1)
-
-        for i, item in enumerate(totals.index, start=1):
-            # map item to node index
-            if item in node_index:
-                node_y[node_index[item]] = i * step
-
     # =========================================================
     # SANKEY FIGURE
     # =========================================================
 
     fig = go.Figure(
         go.Sankey(
-            arrangement="snap",
+            arrangement="fixed",
             node=dict(
-                label=nodes.tolist(),
-                pad=15,
-                thickness=15,
+                label=nodes,
+                pad=10,
+                # thickness=15,
                 color=node_colors,
                 line=dict(color="#15151E", width=0.5),
                 hovertemplate=(
                     "<b>%{label}</b><br>"
                     "<b>%{value:d}</b> wins<extra></extra>"
                 ),
+                x=node_x,
                 y=node_y,
             ),
             link=dict(
@@ -368,10 +419,6 @@ def update_sankey(selected_circuits,
                 color=line_colors,
             ),
         )
-    )
-
-    fig.update_layout(
-        margin=dict(t=50, l=50, r=50, b=50),
     )
 
     return fig, arrow_text
