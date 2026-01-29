@@ -21,37 +21,41 @@ from teams import map_team, team_colors
                 grouped by count
 ================================================================================
 """
-# ========= 1. circuit-constructor-driver dataframe ============
 
 
-def get_parcats_data():
-    # Use only Finalists
-    results_finalists_df = results_df[results_df["position"] == 1].copy()
+PARCATS_CACHE = (None, None)
 
-    # race -> circuits
-    race_circuit = races_df[["raceId", "circuitId"]].copy().dropna()
 
-    # race -> constructors, drivers
-    race_constructor_driver = \
-        results_finalists_df[["raceId",
-                              "constructorId",
-                              "driverId"]].copy().dropna().astype({
-                                  "raceId": int,
-                                  "constructorId": int,
-                                  "driverId": int
-                              })
+def get_parcats_data(season_filter=None):
+    global PARCATS_CACHE
+    (cache_data, cache_season) = PARCATS_CACHE
+    if cache_data is not None:
+        if season_filter is None and cache_season is None:
+            return cache_data
+        if season_filter is not None and cache_season is not None:
+            if (cache_season[0] == season_filter[0]
+                    and cache_season[1] == season_filter[1]):
+                return cache_data
 
-    # Merge dataframes through races
-    # to get circuit-constructor-driver relationships
+    results_winners = results_df[results_df["position"] == 1][[
+        "raceId", "constructorId", "driverId"]].dropna()
+
+    if season_filter is not None:
+        races = races_df[races_df["year"].between(
+            season_filter[0], season_filter[1])]
+    else:
+        races = races_df
+    races = races[["raceId", "circuitId"]].dropna()
+
     df_plot = pd.merge(
-        race_constructor_driver,
-        race_circuit,
+        results_winners,
+        races,
         on="raceId",
-        how="inner",
+        how="inner"
     ).dropna(subset=["circuitId", "constructorId", "driverId"]).astype({
         "circuitId": int,
         "constructorId": int,
-        "driverId": int
+        "driverId": int,
     })
 
     # Calculate total number of values in the dataframe
@@ -64,6 +68,8 @@ def get_parcats_data():
     df_plot["Driver"] = df_plot["driverId"].map(driver_names)
     df_plot["team_group"] = df_plot["Constructor"].apply(map_team)
     df_plot["color"] = df_plot["team_group"].map(team_colors)
+
+    PARCATS_CACHE = ((df_plot, total_values), season_filter)
 
     return df_plot, total_values
 
@@ -196,11 +202,15 @@ layout = html.Div([
 def update_parcats(selected_circuits,
                    selected_constructors,
                    selected_drivers,
+                   season_filter,
                    number_of_records,
                    do_sort,
                    sorting_column,
                    sorting_type,
                    sort_order_clicks):
+    cache_data = get_parcats_data(season_filter)
+    print(cache_data)
+    df_plot, _ = cache_data
     dff = df_plot.copy()
 
     # ---- FILTERING ----
@@ -258,6 +268,9 @@ def update_parcats(selected_circuits,
         dff,
         dimensions=["Circuit_labels", "Constructor", "Driver"],
         color="color",
+        labels={
+            "Circuit_labels": "Circuit",
+        },
     )
 
     fig.update_traces(
@@ -285,6 +298,7 @@ app.callback(
     Input("circuit-filter", "value"),
     Input("constructor-filter", "value"),
     Input("driver-filter", "value"),
+    Input("year-range-slider", "value"),
     Input("count-slider", "value"),
     Input("sort-enable", "on"),
     Input("sort-by-column", "value"),

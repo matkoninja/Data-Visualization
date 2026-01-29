@@ -163,7 +163,7 @@ def circuit_from_map_click(clickData):
     return circuits.iloc[index]
 
 
-def draw_fastest_lap_times_line_chart(filterValue):
+def draw_fastest_lap_times_line_chart(filterValue, season_filter=None):
     if (filterValue is None or len(filterValue) == 0):
         filterValue = []
 
@@ -171,7 +171,15 @@ def draw_fastest_lap_times_line_chart(filterValue):
                          if filterValue is not None and len(filterValue) > 0
                          else pd.DataFrame(columns=circuits.columns))
     if len(selected_circuits) == 0:
-        circuit_lap_times = (fastest_lap_times
+        if season_filter:
+            circuit_lap_times = fastest_lap_times[
+                (fastest_lap_times["year"] >= season_filter[0])
+                & (fastest_lap_times["year"] <= season_filter[1])
+            ]
+        else:
+            circuit_lap_times = fastest_lap_times
+
+        circuit_lap_times = (circuit_lap_times
                              .groupby("year", as_index=False)
                              .agg(fastest_milliseconds=("fastest_milliseconds",
                                                         "mean"))
@@ -202,6 +210,11 @@ def draw_fastest_lap_times_line_chart(filterValue):
         lap_times_mask = (fastest_lap_times["circuitRef"]
                           .isin(selected_circuits["circuitRef"]))
         circuit_lap_times = fastest_lap_times[lap_times_mask]
+        if season_filter:
+            circuit_lap_times = circuit_lap_times[
+                (circuit_lap_times["year"] >= season_filter[0])
+                & (circuit_lap_times["year"] <= season_filter[1])
+            ]
 
     times_with_format = circuit_lap_times[
         ["fastest_lap", "fastest_milliseconds"]
@@ -284,6 +297,7 @@ def draw_fastest_lap_times_line_chart(filterValue):
 app.callback(
     Output("circuits-lap-times", "figure"),
     Input("circuit-filter", "value"),
+    Input("year-range-slider", "value")
 )(draw_fastest_lap_times_line_chart)
 
 

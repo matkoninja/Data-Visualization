@@ -179,7 +179,8 @@ def add_jitter(df, x_col='year', y_col='age', jitter_amount=0.3):
 def create_career_plot(mode='start',
                        enable_jitter=True,
                        constructor_filter=None,
-                       driver_filter=None):
+                       driver_filter=None,
+                       season_filter=None):
     """Create career plot with improved legend and disclaimer"""
     # Filter by constructor if provided
     if constructor_filter:
@@ -199,6 +200,16 @@ def create_career_plot(mode='start',
         ]
         end_points_filtered = end_points_filtered[
             end_points_filtered['driverId'].isin(driver_filter)
+        ]
+
+    if season_filter:
+        start_points_filtered = start_points_filtered[
+            (start_points_filtered['year'] >= season_filter[0]) &
+            (start_points_filtered['year'] <= season_filter[1])
+        ]
+        end_points_filtered = end_points_filtered[
+            (end_points_filtered['year'] >= season_filter[0]) &
+            (end_points_filtered['year'] <= season_filter[1])
         ]
 
     # Map teams

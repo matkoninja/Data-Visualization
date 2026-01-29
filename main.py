@@ -265,13 +265,15 @@ def toggle_filters(n_clicks, collapsed, current_style):
     Output("driver-careers-chart", "figure"),
     Input("career-mode", "value"),
     Input("constructor-filter", "value"),
-    Input("driver-filter", "value")
+    Input("driver-filter", "value"),
+    Input("year-range-slider", "value")
 )
-def update_chart(mode, constructor_filter, driver_filter):
+def update_chart(mode, constructor_filter, driver_filter, season_filter):
     return create_career_plot(
         mode=mode,
         constructor_filter=constructor_filter,
         driver_filter=driver_filter,
+        season_filter=season_filter,
     ).update_layout()
 
 
