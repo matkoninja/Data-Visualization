@@ -1,7 +1,7 @@
 from dash import html, dcc, Input, Output
 import dash_daq as daq
 import pandas as pd
-import plotly.graph_objects as go
+import plotly.express as px
 
 from app import app
 from source import (
@@ -13,7 +13,6 @@ from source import (
     races_df,
 )
 from teams import map_team, team_colors
-from utils import rgba
 
 
 """
@@ -194,17 +193,14 @@ layout = html.Div([
 """
 
 
-COLOR_ALPHA = 0.6
-
-
-def update_sankey(selected_circuits,
-                  selected_constructors,
-                  selected_drivers,
-                  number_of_records,
-                  do_sort,
-                  sorting_column,
-                  sorting_type,
-                  sort_order_clicks):
+def update_parcats(selected_circuits,
+                   selected_constructors,
+                   selected_drivers,
+                   number_of_records,
+                   do_sort,
+                   sorting_column,
+                   sorting_type,
+                   sort_order_clicks):
     dff = df_plot.copy()
 
     # ---- FILTERING ----
@@ -223,11 +219,28 @@ def update_sankey(selected_circuits,
 
     if do_sort:
         if sorting_type == "count":
-            counts = dff.groupby(
-                ["Circuit", "Constructor", "Driver"]
+            circuit_constructor_driver_counts = dff.groupby(
+                ["circuitId", "constructorId", "driverId"]
             ).size().reset_index(name="count")
-            column_order = counts.groupby(sorting_column)[
-                "count"].sum().sort_values(ascending=sort_ascending)
+            circuit_constructor_driver_counts["Circuit"] = \
+                circuit_constructor_driver_counts["circuitId"].map(
+                    circuit_names
+            )
+            circuit_constructor_driver_counts["Circuit_labels"] = \
+                circuit_constructor_driver_counts["circuitId"].map(
+                    circuit_names_wrapped
+            )
+            circuit_constructor_driver_counts["Constructor"] = \
+                circuit_constructor_driver_counts["constructorId"].map(
+                    constructor_names
+            )
+            circuit_constructor_driver_counts["Driver"] = \
+                circuit_constructor_driver_counts["driverId"].map(
+                    driver_names
+            )
+            column_order = circuit_constructor_driver_counts.groupby(
+                sorting_column
+            )["count"].sum().sort_values(ascending=sort_ascending)
             dff[sorting_column] = pd.Categorical(
                 dff[sorting_column],
                 categories=column_order.index,
@@ -237,190 +250,34 @@ def update_sankey(selected_circuits,
         else:
             dff = dff.sort_values(by=sorting_column, ascending=sort_ascending)
 
-    dff["count"] = 1
-
     # ---- FIRST number_of_records RECORDS ----
     dff = dff.head(number_of_records)
 
-    circuit_order = dff["Circuit"].unique().tolist()
-    constructor_order = dff["Constructor"].unique().tolist()
-    driver_order = dff["Driver"].unique().tolist()
-
-    if do_sort:
-        if sorting_column == "Constructor":
-            if sorting_type == "count":
-                constructor_order = (
-                    dff.groupby("Constructor")["count"]
-                    .sum()
-                    .sort_values(ascending=sort_ascending)
-                    .index.tolist()
-                )
-            else:
-                constructor_order = sorted(
-                    dff["Constructor"].unique(),
-                    reverse=not sort_ascending
-                )
-        elif sorting_column == "Circuit":
-            if sorting_type == "count":
-                circuit_order = (
-                    dff.groupby("Circuit")["count"]
-                    .sum()
-                    .sort_values(ascending=sort_ascending)
-                    .index.tolist()
-                )
-            else:
-                circuit_order = sorted(
-                    dff["Circuit"].unique(),
-                    reverse=not sort_ascending
-                )
-        elif sorting_column == "Driver":
-            if sorting_type == "count":
-                driver_order = (
-                    dff.groupby("Driver")["count"]
-                    .sum()
-                    .sort_values(ascending=sort_ascending)
-                    .index.tolist()
-                )
-            else:
-                driver_order = sorted(
-                    dff["Driver"].unique(),
-                    reverse=not sort_ascending
-                )
-
-    # =========================================================
-    # SANKEY PREP
-    # =========================================================
-
-    # Aggregate flows
-    c_to_c = (
-        dff.groupby(["Circuit", "Constructor"])["count"]
-        .sum()
-        .reset_index()
+    # ---- CREATING PARALLEL CATEGORIES FIGURE ----
+    fig = px.parallel_categories(
+        dff,
+        dimensions=["Circuit_labels", "Constructor", "Driver"],
+        color="color",
     )
 
-    c_to_d = (
-        dff.groupby(["Constructor", "Driver"])["count"]
-        .sum()
-        .reset_index()
+    fig.update_traces(
+        labelfont=dict(size=16, color="#15151E"),
+        tickfont=dict(size=11, color="#15151E"),
+        line=dict(shape="hspline"),
+        hovertemplate=('<b>%{category}</b><br />%{count} '
+                       '(%{categorycount} total)'),
+        hoveron='color'
     )
 
-    # Create node list
-    # nodes = pd.Index(
-    #     pd.concat([
-    #         c_to_c["Circuit"],
-    #         c_to_c["Constructor"],
-    #         c_to_d["Driver"],
-    #     ]).unique()
-    # )
-    nodes = (
-        circuit_order
-        + constructor_order
-        + driver_order
+    fig.for_each_shape(
+        lambda s: print(s)
     )
 
-    node_index = {name: i for i, name in enumerate(nodes)}
-
-    # node_colors = (["#B0B0B0"
-    #                 for _
-    #                 in range(len(c_to_c["Circuit"].unique()))]
-    #                + [team_colors.get(map_team(name), "#B0B0B0")
-    #                   for name
-    #                   in c_to_c["Constructor"].unique()
-    #                   ]
-    #                + ["#E0E0E0"
-    #                   for _
-    #                   in range(len(c_to_d["Driver"].unique()))])
-    node_colors = (
-        ["#B0B0B0"
-         for _
-         in circuit_order]
-        + [team_colors.get(map_team(name), "#B0B0B0")
-           for name
-           in constructor_order
-           ]
-        + ["#E0E0E0"
-           for _
-           in driver_order]
+    fig.update_layout(
+        margin=dict(t=50, l=50, r=50, b=50),
     )
 
-    def spaced(n):
-        if n <= 1:
-            return [0.5]
-        return [i / (n - 1) for i in range(n)]
-
-    node_y = (
-        spaced(len(circuit_order))
-        + spaced(len(constructor_order))
-        + spaced(len(driver_order))
-    )
-
-    print(nodes)
-    print(node_y)
-
-    node_x = (
-        [0.0] * len(circuit_order)
-        + [0.5] * len(constructor_order)
-        + [1.0] * len(driver_order)
-    )
-
-    # Build links
-    sources = []
-    targets = []
-    values = []
-    hover = []
-    line_colors = []
-
-    # Circuit → Constructor
-    for _, r in c_to_c.iterrows():
-        sources.append(node_index[r["Circuit"]])
-        targets.append(node_index[r["Constructor"]])
-        values.append(r["count"])
-        hover.append(f"<b>{r['Constructor']}</b> at <b>{r['Circuit']}</b>"
-                     f"<br><b>{r['count']}</b> wins")
-        color = team_colors.get(map_team(r["Constructor"]), "#B0B0B0")
-        line_colors.append(rgba(color, COLOR_ALPHA))
-
-    # Constructor → Driver
-    for _, r in c_to_d.iterrows():
-        sources.append(node_index[r["Constructor"]])
-        targets.append(node_index[r["Driver"]])
-        values.append(r["count"])
-        hover.append(f"<b>{r['Driver']}</b> at <b>{r['Constructor']}</b>"
-                     f"<br><b>{r['count']}</b> wins")
-        color = team_colors.get(map_team(r["Constructor"]), "#B0B0B0")
-        line_colors.append(rgba(color, COLOR_ALPHA))
-
-    # =========================================================
-    # SANKEY FIGURE
-    # =========================================================
-
-    fig = go.Figure(
-        go.Sankey(
-            arrangement="fixed",
-            node=dict(
-                label=nodes,
-                pad=10,
-                # thickness=15,
-                color=node_colors,
-                line=dict(color="#15151E", width=0.5),
-                hovertemplate=(
-                    "<b>%{label}</b><br>"
-                    "<b>%{value:d}</b> wins<extra></extra>"
-                ),
-                x=node_x,
-                y=node_y,
-            ),
-            link=dict(
-                source=sources,
-                target=targets,
-                value=values,
-                hovertemplate="%{customdata}<extra></extra>",
-                customdata=hover,
-                color=line_colors,
-            ),
-        )
-    )
-
+    # ---- OUTPUT FIGURE & UPDATE BUTTON TEXT ----
     return fig, arrow_text
 
 
@@ -437,4 +294,4 @@ app.callback(
     Input("sort-by-column", "value"),
     Input("sort-by-parameter", "value"),
     Input("sort-order", "n_clicks")
-)(update_sankey)
+)(update_parcats)
