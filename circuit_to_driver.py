@@ -269,10 +269,6 @@ def update_parcats(selected_circuits,
         hoveron='color'
     )
 
-    fig.for_each_shape(
-        lambda s: print(s)
-    )
-
     fig.update_layout(
         margin=dict(t=50, l=50, r=50, b=50),
     )
