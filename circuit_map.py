@@ -453,9 +453,7 @@ def _draw_circuit_info_children(title: str,
             [
                 html.Span(
                     item,
-                    style={
-                        "color": "#fff",
-                    },
+                    className="circuit-info_text"
                 )
                 for item
                 in grid_items
@@ -464,7 +462,6 @@ def _draw_circuit_info_children(title: str,
                 "display": "grid",
                 "gridTemplateColumns": "1fr 1fr",
                 "gap": "0.5rem 1rem",
-                "border": "1px solid #ccc",
             }
         )
     ]

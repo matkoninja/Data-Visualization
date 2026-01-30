@@ -5,7 +5,8 @@
 :root {
     --primary: #FF1E00;
     --secondary: #C4C4C4;
-    /* --font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, sans-serif; */
+    --font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+
 }
 
 /* =========================================================

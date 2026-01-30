@@ -2,8 +2,6 @@
     box-sizing: border-box;
     margin: 0;
     padding: 0;
-
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
 :root {
@@ -18,12 +16,13 @@
 }
 
 .circuits-map {
-    border: 1px solid #ccc;
+    /* border: 1px solid #ccc; */
     width: 75%;
 }
 
 .circuit-info_container {
-    background-color: #091c7a;
+    background-color: var(--secondary);
+    color: var(--text-primary);
     padding: 1rem;
     display: flex;
     flex-direction: column;
@@ -32,6 +31,7 @@
 }
 
 .circuits-map-info_container {
+     color: var(--text-secondary);
     width: 100%;
     display: flex;
     justify-content: space-evenly;
@@ -41,7 +41,6 @@
 }
 
 .circuit-info_title {
-    color: #fff;
     font-size: 1.5rem;
     width: 100%;
 
@@ -51,13 +50,17 @@
 }
 
 .circuit-info_subtitle {
-    color: #ccc;
+    color: var(--text-secondary);
     font-size: 0.9rem;
     width: 100%;
 
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+}
+
+.circuit-info_text {
+    color: var(--text-primary);
 }
 
 .circuit-info_flag {
