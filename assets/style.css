@@ -1,18 +1,24 @@
 /* Main dashboard container - ensure full viewport width */
 .dashboard-container {
-    width: 100%;
+    width: 90%;
     max-width: none;
     padding: 0;
-    margin: 0;
-    box-sizing: border-box;
-}
+    margin: auto;
 
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+.dashboard-container > * {
+    width: 100%!important; 
+}
 /* Bottom section - full width with horizontal margins */
 .bottom-container {
     display: flex;
     gap: 20px;
     width: 100%;
-    padding: 0 80px; /* Considerable left/right margins */
+    /*padding: 0 80px;  Considerable left/right margins */
     box-sizing: border-box;
 }
 
@@ -43,10 +49,6 @@
     font-style: italic;
     text-align: center;
     padding-top: 50px;
-}
-
-.card-content {
-    font-family: Arial, sans-serif;
 }
 
 .driver-name {

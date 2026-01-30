@@ -174,7 +174,6 @@ app.layout = html.Div([
     # Top row: Map + Circuit Info
     circuit_map_layout,
 
-    # Middle row: Driver careers scatter plot + driver card
     html.Div([
         dcc.Store(id='driver-id-storage'),
         html.Div([
@@ -200,7 +199,6 @@ app.layout = html.Div([
         ], className="chart-card-wrapper")
     ], className="bottom-container"),
 
-    # Bottom row: Career timeline chart (initially hidden)
     html.Div([
         html.Div([
             html.H3("Career Timeline", className="timeline-title"),
