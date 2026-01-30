@@ -48,31 +48,6 @@ app.callback(
 app.layout = html.Div([
     html.Div(
         [
-            # Collapse/Expand button
-            html.Div(
-                [
-                    html.Button(
-                        "Collapse",
-                        id="filters-button",
-                        style={
-                            "font-size": "16px",
-                            "padding": "0 1rem",
-                            "border-radius": "8px",
-                            "border": "1px solid #cccccc",
-                            "background-color": "#f0f0f0",
-                            "cursor": "pointer",
-                        },
-                    ),
-                    dcc.Store(id="filters-collapsed"),
-                ],
-                style={
-                    "height": "2rem",
-                    "display": "flex",
-                    "align-items": "center",
-                    "justify-content": "center",
-                },
-            ),
-
             # Filters container
             html.Div([
                 # Season (Year) range slider
@@ -153,6 +128,31 @@ app.layout = html.Div([
                 "align-items": "center",
                 "gap-y": "0.5rem",
             }, id="filters-container"),
+            
+                # Collapse/Expand button
+            html.Div(
+                [
+                    html.Button(
+                        "Collapse",
+                        id="filters-button",
+                        style={
+                            "font-size": "16px",
+                            
+                            "border-radius": "8px",
+                            "border": "0",
+                            "background-color": "var(--bg-main)",
+                            "cursor": "pointer",
+                        },
+                    ),
+                    dcc.Store(id="filters-collapsed"),
+                ],
+                style={
+                    "height": "2rem",
+                    "display": "flex",
+                    "align-items": "center",
+                    "justify-content": "center",
+                },
+            ),
         ],
         style={
             "width": "60%",
@@ -258,7 +258,7 @@ def toggle_filters(n_clicks, collapsed, current_style):
         })
     return (collapsed,
             style,
-            "Expand Filters" if collapsed else "Collapse Filters")
+            "˅˅" if collapsed else "˄˄")
 
 
 @app.callback(
