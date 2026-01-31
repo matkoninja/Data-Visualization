@@ -28,6 +28,7 @@
     flex-direction: column;
     gap: 0.5rem;
     flex: 1;
+    border-radius: 1rem;
 }
 
 .circuits-map-info_container {
@@ -57,9 +58,9 @@
     text-overflow: ellipsis;
 }
 
-/* .circuit-info_text {
-    color: var(--text-primary);
-} */
+.circuit-info_text {
+    color: var(--text-secondary);
+}
 
 .circuit-info_flag {
     width: 4rem;

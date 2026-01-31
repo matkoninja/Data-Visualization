@@ -474,7 +474,6 @@ def _draw_circuit_info_children(title: str,
                 "display": "grid",
                 "gridTemplateColumns": "1fr 1fr",
                 "gap": "0.5rem 1rem",
-                "color": "var(--text-secondary)",
             }
         )
     ]
