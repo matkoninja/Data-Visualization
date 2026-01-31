@@ -10,6 +10,7 @@ from scatter_plot_drivers import (
 from driver_card import create_driver_card
 from circuit_to_driver import layout as circuit_to_driver_layout
 from source import circuit_names, constructor_names, driver_names
+from app import server
 
 
 MAIN_DROPDOWN_STYLE = {
