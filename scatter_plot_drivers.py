@@ -507,8 +507,6 @@ def create_career_timeline(driver_id):
             xanchor="left",
             x=1.02,
             bgcolor="rgba(255, 255, 255, 0.8)",
-            bordercolor="Black",
-            borderwidth=1
         ),
         font_family="Poppins",
         plot_bgcolor="#FFFFFF",
@@ -519,7 +517,7 @@ def create_career_timeline(driver_id):
         xaxis_tickfont_color=Colors.SECONDARY,
         legend_font_color=Colors.SECONDARY,
         legend_title_font_color=Colors.BLACK,
-        hoverlabel_font_color=Colors.SECONDARY,
+        #hoverlabel_font_color=Colors.SECONDARY,
     )
 
     return fig
