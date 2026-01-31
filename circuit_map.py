@@ -524,8 +524,6 @@ layout = html.Div(
                     figure=draw_circuits_map(),
                     id="circuits-map",
                     className="circuits-map",
-                    style={"width": "100%", "height": "100%"},
-                    config={"responsive": True},
                 ),
                 html.Div(
                     _draw_circuit_info_children(*DEFAULT_CIRCUIT_INFO),
