@@ -48,7 +48,7 @@ app.callback(
 
 MAIN_DROPDOWN_STYLE = {
     "flex": "1",
-    "background-color": Colors.SECONDARY,
+    "background-color": Colors.BG_PANEL,
 }
 
 app.layout = html.Div([

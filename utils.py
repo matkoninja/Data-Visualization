@@ -19,3 +19,4 @@ class Colors:
     SECONDARY = "#747478"
     PRIMARY = "#FF1E00"
     BLACK = "#0C0A00"
+    BG_PANEL = "#F2F0EF"

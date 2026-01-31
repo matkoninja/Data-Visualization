@@ -332,7 +332,7 @@ def draw_circuits_map(clickData=None, filterValue=None, inContext=False):
         hovertemplate=("<b>%{hovertext}</b><br>%{customdata[1]}, "
                        "%{customdata[0]}<br>Race Count: %{customdata[2]}"),
         marker=dict(
-            color=Colors.SECONDARY,
+            color=Colors.BLACK,
             sizemin=5,
             sizeref=sizeref,
             sizemode='area',
@@ -352,7 +352,7 @@ def draw_circuits_map(clickData=None, filterValue=None, inContext=False):
         return fig
     trigger = ctx.triggered[0]["prop_id"].split(".")[0]
 
-    colors = [Colors.SECONDARY] * len(circuits)
+    colors = [Colors.BLACK] * len(circuits)
 
     if trigger == "circuits-map":
         selected_idx = circuit_index_from_map_click(clickData)
@@ -420,6 +420,7 @@ def _draw_circuit_info_children(title: str,
                         html.H3(
                             title,
                             className="circuit-info_title",
+
                         ),
                         html.Span(
                             subtitle,
@@ -441,6 +442,8 @@ def _draw_circuit_info_children(title: str,
                 "justifyContent": ("space-between"
                                    if country_code
                                    else "flex-start"),
+                
+                "color": "var(--text-secondary)",
             }
         ),
         html.Div(
@@ -456,6 +459,7 @@ def _draw_circuit_info_children(title: str,
                 "display": "grid",
                 "gridTemplateColumns": "1fr 1fr",
                 "gap": "0.5rem 1rem",
+                "color": "var(--text-secondary)",
             }
         )
     ]
