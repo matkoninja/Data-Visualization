@@ -514,7 +514,7 @@ layout = html.Div(
                     className="circuits-map",
                 ),
                 html.Div(
-                    None,
+                    _draw_circuit_info_children(*DEFAULT_CIRCUIT_INFO),
                     id="circuit-info",
                     className="circuit-info_container",
                 ),
