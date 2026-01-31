@@ -12,7 +12,7 @@ from source import (
     races_df,
     rule_changes_df,
 )
-
+from utils import Colors
 
 def get_circuits_info(circuits, races, circuits_extras) -> pd.DataFrame:
     # Count number of races per circuitId
@@ -226,8 +226,7 @@ def draw_fastest_lap_times_line_chart(filterValue, season_filter=None):
         x="year",
         y="fastest_milliseconds",
         color=("circuitRef" if len(selected_circuits) > 0 else None),
-        title=("Fastest Lap Times at "
-               + ', '.join(selected_circuits['name'].values)
+        title=("Fastest Lap Times at selected circuits"
                if len(selected_circuits) > 0
                else "Average Fastest Lap Times Across All Circuits"),
         labels={
@@ -252,19 +251,21 @@ def draw_fastest_lap_times_line_chart(filterValue, season_filter=None):
     max_time = (ceil(max_time_raw / 1000) * 1000
                 if not np.isnan(max_time_raw) else 120_000)
 
-    ticks_vals = np.arange(min_time, max_time + 1, 1000)
+    # Change the step value here (currently 1000 for 1 second)
+    step_ms = 4000  # For 2-second intervals
+    ticks_vals = np.arange(min_time, max_time + 1, step_ms)
     ticks_texts = list(map(format_lap_time_s, ticks_vals))
 
     for _, rule_change in rule_changes.iterrows():
         fig.add_vline(
             x=rule_change["year"],
             line_dash="dash",
-            line_color="red",
+            line_color=Colors.SECONDARY,
         )
     fig.update_layout(
         xaxis=dict(
             dtick=2,
-            tick0=circuit_lap_times["year"].min(),
+            tick0=circuit_lap_times["year"].min()
         ),
         yaxis=dict(
             tickmode="array",
@@ -272,7 +273,21 @@ def draw_fastest_lap_times_line_chart(filterValue, season_filter=None):
             ticktext=ticks_texts,
         ),
         hovermode="x unified",
+        font_family="Poppins",
+        plot_bgcolor="#FFFFFF",
+        title_font_color=Colors.BLACK,
+        xaxis_title_font_color=Colors.SECONDARY,
+        yaxis_title_font_color=Colors.SECONDARY,
+        yaxis_tickfont_color=Colors.SECONDARY,
+        xaxis_tickfont_color=Colors.SECONDARY,
+        legend_font_color=Colors.SECONDARY,
+        legend_title_font_color=Colors.BLACK,
+        hoverlabel_font_color=Colors.SECONDARY,
     )
+    
+    if len(selected_circuits) == 0:
+        fig.update_traces(line_color=Colors.BLACK)
+        
     fig.update_traces(
         hovertemplate="%{customdata[1]}<br><extra></extra>",
     )
@@ -319,9 +334,9 @@ def draw_circuits_map(clickData=None, filterValue=None, inContext=False):
                     visible=False)
 
     fig.update_layout(
-        title="Circuit Locations",
-        margin={"l": 0, "r": 0, "t": 40, "b": 0},
+        margin={"l": 0, "r": 0, "t": 0, "b": 0},
         uirevision='keep-geo',
+        font_family="Poppins",
     )
 
     sizes = circuits["race_count"].fillna(0)
@@ -331,23 +346,16 @@ def draw_circuits_map(clickData=None, filterValue=None, inContext=False):
         hovertemplate=("<b>%{hovertext}</b><br>%{customdata[1]}, "
                        "%{customdata[0]}<br>Race Count: %{customdata[2]}"),
         marker=dict(
+            color=Colors.BLACK,
             sizemin=5,
             sizeref=sizeref,
             sizemode='area',
         ),
     )
 
-    sizes = circuits["race_count"].fillna(0)
-    sizeref = 2.0 * max(sizes) / (30 ** 2)
-
-    fig.update_traces(
-        hovertemplate=("<b>%{hovertext}</b><br>%{customdata[1]}, "
-                       "%{customdata[0]}<br>Race Count: %{customdata[2]}"),
-        marker=dict(
-            sizemin=5,
-            sizeref=sizeref,
-            sizemode='area',
-        ),
+    fig.update_geos(
+        projection_scale=1,
+        center=dict(lat=20, lon=0),
     )
 
     if not inContext:
@@ -358,12 +366,12 @@ def draw_circuits_map(clickData=None, filterValue=None, inContext=False):
         return fig
     trigger = ctx.triggered[0]["prop_id"].split(".")[0]
 
-    colors = ["#636efa"] * len(circuits)
+    colors = [Colors.BLACK] * len(circuits)
 
     if trigger == "circuits-map":
         selected_idx = circuit_index_from_map_click(clickData)
         if selected_idx is not None:
-            colors[selected_idx] = "red"
+            colors[selected_idx] = Colors.PRIMARY
     elif (trigger == "circuit-filter"
           and filterValue is not None
           and len(filterValue) > 0):
@@ -371,7 +379,7 @@ def draw_circuits_map(clickData=None, filterValue=None, inContext=False):
             row = circuits[circuits["name"] == value].iloc[0]
             selected_idx = circuits.index.get_loc(row.name)
             if selected_idx is not None:
-                colors[selected_idx] = "red"
+                colors[selected_idx] = Colors.PRIMARY
     else:
         return fig
 
@@ -423,9 +431,10 @@ def _draw_circuit_info_children(title: str,
             [
                 html.Div(
                     [
-                        html.H2(
+                        html.H3(
                             title,
                             className="circuit-info_title",
+
                         ),
                         html.Span(
                             subtitle,
@@ -447,15 +456,15 @@ def _draw_circuit_info_children(title: str,
                 "justifyContent": ("space-between"
                                    if country_code
                                    else "flex-start"),
+                
+                "color": "var(--text-secondary)",
             }
         ),
         html.Div(
             [
                 html.Span(
                     item,
-                    style={
-                        "color": "#fff",
-                    },
+                    className="circuit-info_text"
                 )
                 for item
                 in grid_items
@@ -464,7 +473,6 @@ def _draw_circuit_info_children(title: str,
                 "display": "grid",
                 "gridTemplateColumns": "1fr 1fr",
                 "gap": "0.5rem 1rem",
-                "border": "1px solid #ccc",
             }
         )
     ]
@@ -508,7 +516,8 @@ app.callback(
 
 
 layout = html.Div(
-    [
+    [   
+        html.H1("Circuit Locations"),
         html.Div(
             [
                 dcc.Graph(
@@ -517,7 +526,7 @@ layout = html.Div(
                     className="circuits-map",
                 ),
                 html.Div(
-                    None,
+                    _draw_circuit_info_children(*DEFAULT_CIRCUIT_INFO),
                     id="circuit-info",
                     className="circuit-info_container",
                 ),

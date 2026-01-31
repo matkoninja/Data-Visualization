@@ -9,6 +9,7 @@ from source import (
     results_df,
 )
 from teams import map_team, team_colors, HISTORICAL_TEAM_MAP
+from utils import Colors
 
 
 races = races_df.copy()[['raceId', 'year', 'name']]
@@ -153,11 +154,9 @@ def add_jitter(df, x_col='year', y_col='age', jitter_amount=0.3):
     """Add improved jitter with team-based offsetting"""
     df = df.copy()
 
-    # Add team-based offset to separate same-team overlaps
     team_offsets = {team: i * 0.1 for i,
                     team in enumerate(df['team_group'].unique())}
 
-    # Combine driver ID and team for more stable jitter
     df['jitter_x'] = df.apply(
         lambda row: (get_jitter(row, 'x', jitter_amount)
                      + team_offsets.get(row['team_group'], 0)),
@@ -172,8 +171,6 @@ def add_jitter(df, x_col='year', y_col='age', jitter_amount=0.3):
     df['jittered_y'] = df[y_col] + df['jitter_y']
 
     return df
-
-# In scatter_plot_drivers.py - update create_career_plot function
 
 
 def create_career_plot(mode='start',
@@ -232,7 +229,6 @@ def create_career_plot(mode='start',
 
     fig = go.Figure()
 
-    # Use different marker sizes and opacity for better visibility
     marker_config = {
         'start': {'size': 10, 'opacity': 0.8, 'symbol': 'circle'},
         'end': {'size': 10, 'opacity': 0.8, 'symbol': 'x'},
@@ -241,12 +237,10 @@ def create_career_plot(mode='start',
 
     config = marker_config.get(mode, marker_config['both'])
 
-    # Plot teams in order (background first)
     all_teams = sorted(set(start_plot['team_group'].tolist()
                            + end_plot['team_group'].tolist()))
     background_teams = {'Other', 'Unknown', 'Team Lotus Original'}
 
-    # Track which teams we've shown in legend
     legend_shown = set()
 
     for team in all_teams:
@@ -326,13 +320,25 @@ def create_career_plot(mode='start',
     disclaimer_text = insert_break_after(
         f'Note: Background teams ({other_teams}, Unknown, '
         f'Team Lotus Original) represent less prominent/historical '
-        'teams', 200)
+        'teams', 100)
 
+    tile_text = "Entry" if mode == "start" else "Retirement" if mode == "end" else "Entry And Retirement"   
     fig.update_layout(
-        title='Entry Age of Formula Drivers by Year',
+        title=f'{tile_text} Age of Formula Drivers by Year',
         xaxis_title='Season',
         yaxis_title='Age',
-        plot_bgcolor='white',
+        font_family="Poppins",
+        plot_bgcolor="#FFFFFF",
+
+        title_font_color=Colors.BLACK,
+        xaxis_title_font_color=Colors.SECONDARY,
+        yaxis_title_font_color=Colors.SECONDARY,
+        yaxis_tickfont_color=Colors.SECONDARY,
+        xaxis_tickfont_color=Colors.SECONDARY,
+        legend_font_color=Colors.SECONDARY,
+        legend_title_font_color=Colors.BLACK,
+        # hoverlabel_font_color=Colors.SECONDARY,
+
         height=700,
         showlegend=True,
         legend=dict(
@@ -354,7 +360,7 @@ def create_career_plot(mode='start',
             dict(
                 text=disclaimer_text,
                 xref="paper", yref="paper",
-                x=0.98, y=0.98,  # Top-right corner
+                x=0.98, y=0.98,  
                 showarrow=False,
                 font=dict(size=9, color="gray"),
                 align="left",
@@ -362,8 +368,8 @@ def create_career_plot(mode='start',
                 bordercolor="gray",
                 borderwidth=1,
                 borderpad=4,
-                xanchor="right",  # Anchor to right side
-                yanchor="top"     # Anchor to top side
+                xanchor="right",  
+                yanchor="top"     
             )
         ]
     )
@@ -413,7 +419,6 @@ def create_career_timeline(driver_id):
                             'mean_position', 'race_count', 'constructor_name']
     yearly_stats['mean_position'] = yearly_stats['mean_position'].round(1)
 
-    # Merge with best positions
     yearly_best = yearly_best.merge(
         yearly_stats[['year', 'mean_position', 'race_count']], on='year')
 
@@ -480,7 +485,6 @@ def create_career_timeline(driver_id):
         hoverinfo='skip'
     ))
 
-    # Invert y-axis so 1st place is at top
     fig.update_yaxes(autorange='reversed')
 
     # Calculate y-axis range to include all positions
@@ -493,7 +497,6 @@ def create_career_timeline(driver_id):
                + " - Complete Career Timeline"),
         xaxis_title='Year',
         yaxis_title='Best Championship Position',
-        plot_bgcolor='white',
         height=500,
         yaxis=dict(range=y_range),
         xaxis=dict(range=[yearly_best['year'].min() -
@@ -504,9 +507,17 @@ def create_career_timeline(driver_id):
             xanchor="left",
             x=1.02,
             bgcolor="rgba(255, 255, 255, 0.8)",
-            bordercolor="Black",
-            borderwidth=1
-        )
+        ),
+        font_family="Poppins",
+        plot_bgcolor="#FFFFFF",
+        title_font_color=Colors.BLACK,
+        xaxis_title_font_color=Colors.SECONDARY,
+        yaxis_title_font_color=Colors.SECONDARY,
+        yaxis_tickfont_color=Colors.SECONDARY,
+        xaxis_tickfont_color=Colors.SECONDARY,
+        legend_font_color=Colors.SECONDARY,
+        legend_title_font_color=Colors.BLACK,
+        #hoverlabel_font_color=Colors.SECONDARY,
     )
 
     return fig

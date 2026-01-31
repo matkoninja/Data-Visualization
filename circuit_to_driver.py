@@ -13,7 +13,7 @@ from source import (
     races_df,
 )
 from teams import map_team, team_colors
-
+from utils import Colors
 
 """
 ================================================================================
@@ -88,8 +88,8 @@ MAIN_DROPDOWN_STYLE = {
 }
 
 layout = html.Div([
-    html.H2(
-        "Circuits → Constructors → Drivers (Winners Only)",
+    html.H1(
+        "Driver↔Team↔Circuit Win Relationships",
         style={"padding": "10px"}
     ),
 
@@ -100,7 +100,7 @@ layout = html.Div([
                     daq.BooleanSwitch(
                         id="sort-enable",
                         on=False,
-                        color="#FF1E00"
+                        color=Colors.PRIMARY
                     ),
 
                     html.Span("Sort all records by"),
@@ -186,11 +186,8 @@ layout = html.Div([
         "height": "100vh",
         "display": "flex",
         "flex-direction": "column",
-        "padding-top": "20px",
         "box-sizing": "border-box",
-},
-    **{"data-theme": "light"}
-)
+})
 
 """
 ================================================================================
@@ -263,7 +260,7 @@ def update_parcats(selected_circuits,
     # ---- CREATING PARALLEL CATEGORIES FIGURE ----
     fig = px.parallel_categories(
         dff,
-        dimensions=["Circuit_labels", "Constructor", "Driver"],
+        dimensions=["Driver", "Constructor", "Circuit_labels"],
         color="color",
         labels={
             "Circuit_labels": "Circuit",
@@ -271,8 +268,8 @@ def update_parcats(selected_circuits,
     )
 
     fig.update_traces(
-        labelfont=dict(size=16, color="#15151E"),
-        tickfont=dict(size=11, color="#15151E"),
+        labelfont=dict(size=16, color=Colors.BLACK),
+        tickfont=dict(size=11, color=Colors.BLACK),
         line=dict(shape="hspline"),
         hovertemplate=('<b>%{category}</b><br />%{count} '
                        '(%{categorycount} total)'),
@@ -280,7 +277,8 @@ def update_parcats(selected_circuits,
     )
 
     fig.update_layout(
-        margin=dict(t=50, l=50, r=50, b=50),
+        font_family="Poppins",
+        margin=dict(t=30, l=55, r=55, b=30),
     )
 
     # ---- OUTPUT FIGURE & UPDATE BUTTON TEXT ----

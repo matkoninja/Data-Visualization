@@ -1,3 +1,6 @@
+import warnings
+warnings.simplefilter(action='ignore', category=FutureWarning)
+
 from dash import dcc, html, Input, Output, State
 from app import app
 from circuit_map import layout as circuit_map_layout
@@ -17,14 +20,15 @@ MAIN_DROPDOWN_STYLE = {
     "flex": "1",
     "background-color": "#f9f9f9",
 }
+from utils import Colors
 
 
 def display_driver_card(clickData):
     if not clickData:
         return html.Div([
             html.Span("Click on a driver point to view details"),
-            html.Button(id="show-career-timeline",
-                        style={"display": "none"})],
+            # html.Button(id="show-career-timeline",style={"display": "none"})
+            ],
             className="card-placeholder"), None
     try:
         point = clickData['points'][0]
@@ -45,35 +49,19 @@ app.callback(
     Input("driver-careers-chart", "clickData")
 )(display_driver_card)
 
+# ------------------------------------------------------------
+#                       Layout
+# ------------------------------------------------------------
+
+MAIN_DROPDOWN_STYLE = {
+    "flex": "1",
+    "background-color": Colors.BG_PANEL,
+}
 
 app.layout = html.Div([
+    # Filters and Controls
     html.Div(
         [
-            # Collapse/Expand button
-            html.Div(
-                [
-                    html.Button(
-                        "Collapse",
-                        id="filters-button",
-                        style={
-                            "font-size": "16px",
-                            "padding": "0 1rem",
-                            "border-radius": "8px",
-                            "border": "1px solid #cccccc",
-                            "background-color": "#f0f0f0",
-                            "cursor": "pointer",
-                        },
-                    ),
-                    dcc.Store(id="filters-collapsed"),
-                ],
-                style={
-                    "height": "2rem",
-                    "display": "flex",
-                    "align-items": "center",
-                    "justify-content": "center",
-                },
-            ),
-
             # Filters container
             html.Div([
                 # Season (Year) range slider
@@ -93,8 +81,8 @@ app.layout = html.Div([
                                     ),
                                     id='year-range-slider'),
                 ], style={
-                    "width": "100%",
-                    "padding": "0 1rem",
+                    "width": "100%", 
+                    "padding": "1rem 0rem",
                 }),
 
                 # Dropdown Filters: Circuit, Constructor, Driver
@@ -143,7 +131,6 @@ app.layout = html.Div([
                     style={
                         "display": "flex",
                         "gap": "10px",
-                        "padding": "10px",
                         "width": "100%",
                     }
                 ),
@@ -154,35 +141,65 @@ app.layout = html.Div([
                 "align-items": "center",
                 "gap-y": "0.5rem",
             }, id="filters-container"),
+            
+            # Collapse/Expand button Container
+            html.Div(
+                [
+                    html.Button(
+                        "ᐱ",
+                        id="filters-button",
+                        style={
+                            "font-size": "16px",
+                            "border-radius": "8px",
+                            "border": "0",
+                            "background-color": "var(--bg-panel)",
+                            "cursor": "pointer",
+                            "width": "100%",
+                            "height": "100%",
+                        },
+                    ),
+                    dcc.Store(id="filters-collapsed"),
+                ],
+                style={
+                    "width": "100%",
+                    "height": "2rem",
+                    "text-align": "center"
+                },
+            ),
         ],
         style={
             "width": "60%",
             "margin": "0 auto",
             "position": "sticky",
             "top": "0",
-            "background-color": "white",
+            "background-color": "var(--bg-panel)",
             "z-index": "100",
             "border-radius": "0 0 1rem 1rem",
-            "border": "1px solid #cccccc",
-            "box-shadow": "0 2px 4px rgba(0, 0, 0, 0.1)",
+            "border": "1px solid var(--border-subtle)",
+            "box-shadow": "0 2px 4px rgba(0, 0, 0, 0.3)",
             "display": "flex",
             "flex-direction": "column",
             "align-items": "center",
-            "gap-y": "0.5rem",
+            "padding": "0 1rem",
         },
     ),
 
     # Top row: Map + Circuit Info
     circuit_map_layout,
+    
+    html.H1("Drivers per Constructors"),
 
-    # Middle row: Driver careers scatter plot + driver card
     html.Div([
         dcc.Store(id='driver-id-storage'),
         html.Div([
-            html.H3('Chart view:', className="driver-name"),
+            html.H3('Chart view:', className="chart-view"),
             dcc.RadioItems(
                 id='career-mode',
-                options=['start', 'end', 'both'],
+                options=[
+                    {'label': 'Start', 'value': 'start'},
+                    {'label': 'End', 'value': 'end'},
+                    {'label': 'Both', 'value': 'both'}
+                ],
                 value='start',
                 className="toggle-switch"
             )
@@ -201,19 +218,18 @@ app.layout = html.Div([
         ], className="chart-card-wrapper")
     ], className="bottom-container"),
 
-    # Bottom row: Career timeline chart (initially hidden)
     html.Div([
         html.Div([
-            html.H3("Career Timeline", className="timeline-title"),
-            html.P(("Click 'Show Career Timeline' on a driver card "
-                    "to view their complete career progression"),
-                   className="timeline-instruction",
-                   id="timeline-instruction",
-                   style={
-                       'text-align': 'center',
-                       'color': 'gray',
-                       'font-style': 'italic',
-            }),
+            # html.H3("Career Timeline", className="timeline-title"),
+            # html.P(("Click 'Show Career Timeline' on a driver card "
+            #         "to view their complete career progression"),
+            #        className="timeline-instruction",
+            #        id="timeline-instruction",
+            #        style={
+            #            'text-align': 'center',
+            #            'color': 'gray',
+            #            'font-style': 'italic',
+            # }),
             dcc.Graph(
                 id="career-timeline-chart",
                 style={'display': 'none'},
@@ -231,8 +247,15 @@ app.layout = html.Div([
     ], className="timeline-row"),
 
     circuit_to_driver_layout,
-], className="dashboard-container")
+], 
+    className="dashboard-container",
+    **{"data-theme": "light"}
+)
 
+
+# ------------------------------------------------------------
+#                       Callbacks
+# ------------------------------------------------------------
 
 @app.callback(
     Output("filters-collapsed", "data"),
@@ -259,7 +282,7 @@ def toggle_filters(n_clicks, collapsed, current_style):
         })
     return (collapsed,
             style,
-            "Expand Filters" if collapsed else "Collapse Filters")
+            "⌵" if collapsed else "ᐱ")
 
 
 @app.callback(
@@ -275,30 +298,25 @@ def update_chart(mode, constructor_filter, driver_filter, season_filter):
         constructor_filter=constructor_filter,
         driver_filter=driver_filter,
         season_filter=season_filter,
-    ).update_layout()
+    ).update_layout(font_family="Poppins",)
 
 
 @app.callback(
     Output("career-timeline-chart", "figure"),
     Output("career-timeline-chart", "style"),
-    Output("timeline-instruction", "style"),
-    Input("show-career-timeline", "n_clicks"),
-    State("driver-id-storage", "data"),
+    Input("driver-id-storage", "data"), 
 )
-def show_career_timeline(n_clicks, driver_id):
-    if n_clicks and n_clicks > 0 and driver_id:
+def show_career_timeline(driver_id):
+    if driver_id:
         fig = create_career_timeline(driver_id)
         return (fig,
-                {'display': 'block', 'height': '400px'},
-                {'display': 'none'})
+                {'display': 'block', 'height': '400px'}
+                )
+    
+    # Reset to empty state when no driver selected
     return ({},
-            {'display': 'none'},
-            {
-                'display': 'block',
-                'text-align': 'center',
-                'color': 'gray',
-                'font-style': 'italic',
-    })
+            {'display': 'none'}
+           )
 
 
 career = get_career_data()

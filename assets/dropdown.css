@@ -4,28 +4,23 @@
     color: var(--text-primary) !important;
 }
 
-.Select-placeholder,
-.Select--single > .Select-control .Select-value {
-    color: var(--text-secondary) !important;
+.Select-placeholder {
+    color: var(--secondary) !important;
+    border: 1px solid var(--border-subtle) !important;
 }
 
 .Select-menu-outer {
-    background-color: var(--bg-panel, #F5F5F5);
+    background-color: var(--bg-panel);
     border: 1px solid var(--border-subtle);
 }
 
 .Select-option {
-    background-color: var(--bg-panel, #F5F5F5);
-    color: var(--text-primary, #15151E);
-}
-
-.VirtualizedSelectOption {
-    background-color: var(--bg-panel, #F5F5F5);
-    color: var(--text-primary, #15151E);
+    background-color: var(--bg-panel);
+    color: var(--text-primary);
 }
 
 .Select-option.is-focused {
-    background-color: var(--secondary, #6E6E73);
+    background-color: var(--secondary);
     color: var(--bg-main);
 }
 
@@ -33,3 +28,25 @@
     background-color: var(--primary);
     color: white;
 }
+
+.Select-value {
+    background-color: var(--bg-panel) !important;
+    border: 1px solid var(--border-subtle) !important;
+    border-radius: 4px !important;
+    color: var(--text-primary) !important;
+}
+
+.Select-value-icon {
+    color: var(--secondary) !important;
+    border-right: 1px solid var(--border-subtle) !important;
+}
+
+.VirtualizedSelectOption {
+    background-color: var(--bg-panel);
+    color: var(--text-primary);
+}
+
+.dash-dropdown {
+    background-color: var(--bg-panel);
+}
+

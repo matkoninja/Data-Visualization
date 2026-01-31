@@ -1,31 +1,48 @@
+/* 
+    GENERALS
+*/
 /* change the filled track (bar showing selected range) */
-#count-slider .rc-slider-track {
+.rc-slider-track {
     background-color: var(--primary);
 }
 
 /* change the unfilled track (rail) */
-#count-slider .rc-slider-rail {
+.rc-slider-rail {
     background-color: var(--border-subtle);
 }
 
 /* change the handle (thumb) */
-#count-slider .rc-slider-handle {
-    border: solid 2px var(--primary);
-    background-color: var(--bg-panel);
+.rc-slider-handle {
+    border: solid 2px var(--primary) !important;
+    background-color: var(--bg-panel) !important;
+}
+
+/*handle during dragging*/
+.rc-slider-handle-dragging {
+    border-color: var(--primary) !important;
+    box-shadow: 0 0 0 5px color-mix(in srgb, var(--primary) 50%, transparent) !important;
 }
 
 /* optional: change “dot” marks when present */
-#count-slider .rc-slider-dot-active {
-    border-color: #FF1E00;
+.rc-slider-dot-active {
+    border-color: var(--primary);
 }
 
 /* tooltip background */
-#count-slider .rc-tooltip-inner {
-    background-color: #C4C4C4;
-    color: #fff;
+.rc-slider-tooltip-inner {
+    background-color: var(--secondary) !important;
+    color: var(--text-secondary) !important;
 }
 
 /* tooltip arrow */
-#count-slider .rc-tooltip-arrow {
-    border-top-color: #C4C4C4;
+.rc-slider-tooltip-arrow {
+    border-top-color: var(--secondary);
 }
+
+
+/* 
+    MAIN SLIDER
+*/
+/* #year-range-slider .rc-slider-rail {
+    background-color: var(--secondary);
+} */

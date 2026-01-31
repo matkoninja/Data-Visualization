@@ -82,20 +82,20 @@ def create_driver_card(driver_data, link):
                 ", ".join(driver_data['teams_list']), className="teams-list")
         ], className="teams-section"),
 
-        html.Button(
-            "Show Career Timeline",
-            id="show-career-timeline",
-            n_clicks=0,
-            className="career-timeline-button",
-            style={
-                'margin-top': '20px',
-                'padding': '10px 20px',
-                'background-color': '#0066cc',
-                'color': 'white',
-                'border': 'none',
-                'border-radius': '5px',
-                'cursor': 'pointer',
-            },
-        ),
+        # html.Button(
+        #     "Show Career Timeline",
+        #     id="show-career-timeline",
+        #     n_clicks=0,
+        #     className="career-timeline-button",
+        #     style={
+        #         'margin-top': '20px',
+        #         'padding': '10px 20px',
+        #         'background-color': '#0066cc',
+        #         'color': 'white',
+        #         'border': 'none',
+        #         'border-radius': '5px',
+        #         'cursor': 'pointer',
+        #     },
+        # ),
     ], className="enhanced-driver-card")
     return card_content
