@@ -8,6 +8,7 @@
 :root {
     --primary: #FF1E00;
     --secondary: #747478;
+    --black: #0C0A00;
     --font-body: 'Poppins', Tahoma, Geneva, Verdana, sans-serif;
     --font-heading: 'Racing Sans One', cursive;
 }
@@ -19,13 +20,13 @@
    ========================================================= */
 
 [data-theme="light"] {
-    --bg-main: #F2F0EF;
-    --bg-panel: #F5F5F5;
+    --bg-main: #FFFFFF;
+    --bg-panel: #F2F0EF;
 
     --text-primary: #0C0A00;
-    --text-secondary: #e4e4e4;
+    --text-secondary: #ffffff;
 
-    --border-subtle: #E0E0E0;
+    --border-subtle: #cccccc;
 }
 
 body {

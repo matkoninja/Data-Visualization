@@ -13,7 +13,7 @@ from source import (
     races_df,
 )
 from teams import map_team, team_colors
-
+from utils import Colors
 
 """
 ================================================================================
@@ -100,7 +100,7 @@ layout = html.Div([
                     daq.BooleanSwitch(
                         id="sort-enable",
                         on=False,
-                        color="#FF1E00"
+                        color=Colors.PRIMARY
                     ),
 
                     html.Span("Sort all records by"),
@@ -187,9 +187,7 @@ layout = html.Div([
         "display": "flex",
         "flex-direction": "column",
         "box-sizing": "border-box",
-},
-    **{"data-theme": "light"}
-)
+})
 
 """
 ================================================================================
@@ -270,8 +268,8 @@ def update_parcats(selected_circuits,
     )
 
     fig.update_traces(
-        labelfont=dict(size=16, color="#15151E"),
-        tickfont=dict(size=11, color="#15151E"),
+        labelfont=dict(size=16, color=Colors.BLACK),
+        tickfont=dict(size=11, color=Colors.BLACK),
         line=dict(shape="hspline"),
         hovertemplate=('<b>%{category}</b><br />%{count} '
                        '(%{categorycount} total)'),

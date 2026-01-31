@@ -31,7 +31,7 @@
 /* tooltip background */
 .rc-slider-tooltip-inner {
     background-color: var(--secondary) !important;
-    color: var(--text-primary);
+    color: var(--text-secondary) !important;
 }
 
 /* tooltip arrow */

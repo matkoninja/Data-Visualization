@@ -13,6 +13,7 @@ from scatter_plot_drivers import (
 from driver_card import create_driver_card
 from circuit_to_driver import layout as circuit_to_driver_layout
 from source import circuit_names, constructor_names, driver_names
+from utils import Colors
 
 
 def display_driver_card(clickData):
@@ -47,7 +48,7 @@ app.callback(
 
 MAIN_DROPDOWN_STYLE = {
     "flex": "1",
-    "background-color": "#f9f9f9",
+    "background-color": Colors.SECONDARY,
 }
 
 app.layout = html.Div([
@@ -144,7 +145,7 @@ app.layout = html.Div([
                             "font-size": "16px",
                             "border-radius": "8px",
                             "border": "0",
-                            "background-color": "var(--bg-main)",
+                            "background-color": "var(--bg-panel)",
                             "cursor": "pointer",
                             "width": "100%",
                             "height": "100%",
@@ -164,10 +165,10 @@ app.layout = html.Div([
             "margin": "0 auto",
             "position": "sticky",
             "top": "0",
-            "background-color": "white",
+            "background-color": "var(--bg-panel)",
             "z-index": "100",
             "border-radius": "0 0 1rem 1rem",
-            "border": "1px solid #cccccc",
+            "border": "1px solid var(--border-subtle)",
             "box-shadow": "0 2px 4px rgba(0, 0, 0, 0.3)",
             "display": "flex",
             "flex-direction": "column",
@@ -235,7 +236,10 @@ app.layout = html.Div([
     ], className="timeline-row"),
 
     circuit_to_driver_layout,
-], className="dashboard-container")
+], 
+    className="dashboard-container",
+    **{"data-theme": "light"}
+)
 
 
 # ------------------------------------------------------------

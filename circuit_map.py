@@ -12,11 +12,7 @@ from source import (
     races_df,
     rule_changes_df,
 )
-
-# colors
-SECONDARY = "#747478"
-PRIMARY = "#FF1E00"
-
+from utils import Colors
 
 def get_circuits_info(circuits, races, circuits_extras) -> pd.DataFrame:
     # Count number of races per circuitId
@@ -263,7 +259,7 @@ def draw_fastest_lap_times_line_chart(filterValue, season_filter=None):
         fig.add_vline(
             x=rule_change["year"],
             line_dash="dash",
-            line_color=PRIMARY,
+            line_color=Colors.PRIMARY,
         )
     fig.update_layout(
         xaxis=dict(
@@ -336,7 +332,7 @@ def draw_circuits_map(clickData=None, filterValue=None, inContext=False):
         hovertemplate=("<b>%{hovertext}</b><br>%{customdata[1]}, "
                        "%{customdata[0]}<br>Race Count: %{customdata[2]}"),
         marker=dict(
-            color=SECONDARY,
+            color=Colors.SECONDARY,
             sizemin=5,
             sizeref=sizeref,
             sizemode='area',
@@ -356,12 +352,12 @@ def draw_circuits_map(clickData=None, filterValue=None, inContext=False):
         return fig
     trigger = ctx.triggered[0]["prop_id"].split(".")[0]
 
-    colors = [SECONDARY] * len(circuits)
+    colors = [Colors.SECONDARY] * len(circuits)
 
     if trigger == "circuits-map":
         selected_idx = circuit_index_from_map_click(clickData)
         if selected_idx is not None:
-            colors[selected_idx] = PRIMARY
+            colors[selected_idx] = Colors.PRIMARY
     elif (trigger == "circuit-filter"
           and filterValue is not None
           and len(filterValue) > 0):
@@ -369,7 +365,7 @@ def draw_circuits_map(clickData=None, filterValue=None, inContext=False):
             row = circuits[circuits["name"] == value].iloc[0]
             selected_idx = circuits.index.get_loc(row.name)
             if selected_idx is not None:
-                colors[selected_idx] = PRIMARY
+                colors[selected_idx] = Colors.PRIMARY
     else:
         return fig
 
