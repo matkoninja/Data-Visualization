@@ -179,7 +179,7 @@ app.layout = html.Div([
     # Top row: Map + Circuit Info
     circuit_map_layout,
     
-    html.H2("Drivers per Constructors"),
+    html.H1("Drivers per Constructors"),
 
     html.Div([
         dcc.Store(id='driver-id-storage'),
@@ -283,7 +283,7 @@ def update_chart(mode, constructor_filter, driver_filter, season_filter):
         constructor_filter=constructor_filter,
         driver_filter=driver_filter,
         season_filter=season_filter,
-    ).update_layout()
+    ).update_layout(font_family="Poppins",)
 
 
 @app.callback(

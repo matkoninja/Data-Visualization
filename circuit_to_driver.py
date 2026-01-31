@@ -88,7 +88,7 @@ MAIN_DROPDOWN_STYLE = {
 }
 
 layout = html.Div([
-    html.H2(
+    html.H1(
         "Driver↔Team↔Circuit Win Relationships",
         style={"padding": "10px"}
     ),
@@ -279,6 +279,7 @@ def update_parcats(selected_circuits,
     )
 
     fig.update_layout(
+        font_family="Poppins",
         margin=dict(t=30, l=55, r=55, b=30),
     )
 

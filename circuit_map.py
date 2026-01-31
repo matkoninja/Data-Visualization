@@ -13,6 +13,10 @@ from source import (
     rule_changes_df,
 )
 
+# colors
+SECONDARY = "#747478"
+PRIMARY = "#FF1E00"
+
 
 def get_circuits_info(circuits, races, circuits_extras) -> pd.DataFrame:
     # Count number of races per circuitId
@@ -259,7 +263,7 @@ def draw_fastest_lap_times_line_chart(filterValue, season_filter=None):
         fig.add_vline(
             x=rule_change["year"],
             line_dash="dash",
-            line_color="red",
+            line_color=PRIMARY,
         )
     fig.update_layout(
         xaxis=dict(
@@ -272,6 +276,7 @@ def draw_fastest_lap_times_line_chart(filterValue, season_filter=None):
             ticktext=ticks_texts,
         ),
         hovermode="x unified",
+        font_family="Poppins",
     )
     fig.update_traces(
         hovertemplate="%{customdata[1]}<br><extra></extra>",
@@ -321,6 +326,7 @@ def draw_circuits_map(clickData=None, filterValue=None, inContext=False):
     fig.update_layout(
         margin={"l": 0, "r": 0, "t": 0, "b": 0},
         uirevision='keep-geo',
+        font_family="Poppins",
     )
 
     sizes = circuits["race_count"].fillna(0)
@@ -330,6 +336,7 @@ def draw_circuits_map(clickData=None, filterValue=None, inContext=False):
         hovertemplate=("<b>%{hovertext}</b><br>%{customdata[1]}, "
                        "%{customdata[0]}<br>Race Count: %{customdata[2]}"),
         marker=dict(
+            color=SECONDARY,
             sizemin=5,
             sizeref=sizeref,
             sizemode='area',
@@ -349,12 +356,12 @@ def draw_circuits_map(clickData=None, filterValue=None, inContext=False):
         return fig
     trigger = ctx.triggered[0]["prop_id"].split(".")[0]
 
-    colors = ["#636efa"] * len(circuits)
+    colors = [SECONDARY] * len(circuits)
 
     if trigger == "circuits-map":
         selected_idx = circuit_index_from_map_click(clickData)
         if selected_idx is not None:
-            colors[selected_idx] = "red"
+            colors[selected_idx] = PRIMARY
     elif (trigger == "circuit-filter"
           and filterValue is not None
           and len(filterValue) > 0):
@@ -362,7 +369,7 @@ def draw_circuits_map(clickData=None, filterValue=None, inContext=False):
             row = circuits[circuits["name"] == value].iloc[0]
             selected_idx = circuits.index.get_loc(row.name)
             if selected_idx is not None:
-                colors[selected_idx] = "red"
+                colors[selected_idx] = PRIMARY
     else:
         return fig
 
@@ -414,7 +421,7 @@ def _draw_circuit_info_children(title: str,
             [
                 html.Div(
                     [
-                        html.H2(
+                        html.H3(
                             title,
                             className="circuit-info_title",
                         ),
@@ -497,7 +504,7 @@ app.callback(
 
 layout = html.Div(
     [   
-        html.H2("Circuit Locations"),
+        html.H1("Circuit Locations"),
         html.Div(
             [
                 dcc.Graph(

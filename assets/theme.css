@@ -2,22 +2,27 @@
    Base tokens (do NOT change per theme)
    ========================================================= */
 
+@import url('https://fonts.googleapis.com/css2?family=Racing+Sans+One&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap');
+
 :root {
     --primary: #FF1E00;
-    --secondary: #C4C4C4;
-    --font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-
+    --secondary: #747478;
+    --font-body: 'Poppins', Tahoma, Geneva, Verdana, sans-serif;
+    --font-heading: 'Racing Sans One', cursive;
 }
+
+
 
 /* =========================================================
    LIGHT THEME
    ========================================================= */
 
 [data-theme="light"] {
-    --bg-main: #FFFFFF;
+    --bg-main: #F2F0EF;
     --bg-panel: #F5F5F5;
 
-    --text-primary: #15151E;
+    --text-primary: #0C0A00;
     --text-secondary: #e4e4e4;
 
     --border-subtle: #E0E0E0;
@@ -27,5 +32,9 @@ body {
     background-color: var(--bg-main);
     color: var(--text-primary);
     margin: 0;
-    font-family: var(--font-family);
+    font-family: var(--font-body);
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-heading);
 }
