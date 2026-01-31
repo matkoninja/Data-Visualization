@@ -12,7 +12,7 @@
     display: flex;
     flex-direction: column;
     width: auto;
-    margin: 2rem 0rem;
+    margin-top: 2rem!important;
 }
 
 .circuits-map {
@@ -57,9 +57,9 @@
     text-overflow: ellipsis;
 }
 
-.circuit-info_text {
+/* .circuit-info_text {
     color: var(--text-primary);
-}
+} */
 
 .circuit-info_flag {
     width: 4rem;

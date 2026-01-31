@@ -18,7 +18,7 @@
     display: flex;
     gap: 20px;
     width: 100%;
-    /*padding: 0 80px;  Considerable left/right margins */
+    margin-top: 2rem;
     box-sizing: border-box;
 }
 
