@@ -226,8 +226,7 @@ def draw_fastest_lap_times_line_chart(filterValue, season_filter=None):
         x="year",
         y="fastest_milliseconds",
         color=("circuitRef" if len(selected_circuits) > 0 else None),
-        title=("Fastest Lap Times at "
-               + ', '.join(selected_circuits['name'].values)
+        title=("Fastest Lap Times at selected circuits"
                if len(selected_circuits) > 0
                else "Average Fastest Lap Times Across All Circuits"),
         labels={
