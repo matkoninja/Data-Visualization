@@ -252,19 +252,21 @@ def draw_fastest_lap_times_line_chart(filterValue, season_filter=None):
     max_time = (ceil(max_time_raw / 1000) * 1000
                 if not np.isnan(max_time_raw) else 120_000)
 
-    ticks_vals = np.arange(min_time, max_time + 1, 1000)
+    # Change the step value here (currently 1000 for 1 second)
+    step_ms = 4000  # For 2-second intervals
+    ticks_vals = np.arange(min_time, max_time + 1, step_ms)
     ticks_texts = list(map(format_lap_time_s, ticks_vals))
 
     for _, rule_change in rule_changes.iterrows():
         fig.add_vline(
             x=rule_change["year"],
             line_dash="dash",
-            line_color=Colors.PRIMARY,
+            line_color=Colors.SECONDARY,
         )
     fig.update_layout(
         xaxis=dict(
             dtick=2,
-            tick0=circuit_lap_times["year"].min(),
+            tick0=circuit_lap_times["year"].min()
         ),
         yaxis=dict(
             tickmode="array",
@@ -273,7 +275,20 @@ def draw_fastest_lap_times_line_chart(filterValue, season_filter=None):
         ),
         hovermode="x unified",
         font_family="Poppins",
+        plot_bgcolor="#FFFFFF",
+        title_font_color=Colors.BLACK,
+        xaxis_title_font_color=Colors.SECONDARY,
+        yaxis_title_font_color=Colors.SECONDARY,
+        yaxis_tickfont_color=Colors.SECONDARY,
+        xaxis_tickfont_color=Colors.SECONDARY,
+        legend_font_color=Colors.SECONDARY,
+        legend_title_font_color=Colors.BLACK,
+        hoverlabel_font_color=Colors.SECONDARY,
     )
+    
+    if len(selected_circuits) == 0:
+        fig.update_traces(line_color=Colors.BLACK)
+        
     fig.update_traces(
         hovertemplate="%{customdata[1]}<br><extra></extra>",
     )
