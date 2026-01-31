@@ -20,8 +20,8 @@ def display_driver_card(clickData):
     if not clickData:
         return html.Div([
             html.Span("Click on a driver point to view details"),
-            html.Button(id="show-career-timeline",
-                        style={"display": "none"})],
+            # html.Button(id="show-career-timeline",style={"display": "none"})
+            ],
             className="card-placeholder"), None
     try:
         point = clickData['points'][0]
@@ -185,10 +185,14 @@ app.layout = html.Div([
     html.Div([
         dcc.Store(id='driver-id-storage'),
         html.Div([
-            html.H3('Chart view:', className="driver-name"),
+            html.H3('Chart view:', className="chart-view"),
             dcc.RadioItems(
                 id='career-mode',
-                options=['start', 'end', 'both'],
+                options=[
+                    {'label': 'Start', 'value': 'start'},
+                    {'label': 'End', 'value': 'end'},
+                    {'label': 'Both', 'value': 'both'}
+                ],
                 value='start',
                 className="toggle-switch"
             )
@@ -210,15 +214,15 @@ app.layout = html.Div([
     html.Div([
         html.Div([
             # html.H3("Career Timeline", className="timeline-title"),
-            html.P(("Click 'Show Career Timeline' on a driver card "
-                    "to view their complete career progression"),
-                   className="timeline-instruction",
-                   id="timeline-instruction",
-                   style={
-                       'text-align': 'center',
-                       'color': 'gray',
-                       'font-style': 'italic',
-            }),
+            # html.P(("Click 'Show Career Timeline' on a driver card "
+            #         "to view their complete career progression"),
+            #        className="timeline-instruction",
+            #        id="timeline-instruction",
+            #        style={
+            #            'text-align': 'center',
+            #            'color': 'gray',
+            #            'font-style': 'italic',
+            # }),
             dcc.Graph(
                 id="career-timeline-chart",
                 style={'display': 'none'},
@@ -293,24 +297,19 @@ def update_chart(mode, constructor_filter, driver_filter, season_filter):
 @app.callback(
     Output("career-timeline-chart", "figure"),
     Output("career-timeline-chart", "style"),
-    Output("timeline-instruction", "style"),
-    Input("show-career-timeline", "n_clicks"),
-    State("driver-id-storage", "data"),
+    Input("driver-id-storage", "data"), 
 )
-def show_career_timeline(n_clicks, driver_id):
-    if n_clicks and n_clicks > 0 and driver_id:
+def show_career_timeline(driver_id):
+    if driver_id:
         fig = create_career_timeline(driver_id)
         return (fig,
-                {'display': 'block', 'height': '400px'},
-                {'display': 'none'})
+                {'display': 'block', 'height': '400px'}
+                )
+    
+    # Reset to empty state when no driver selected
     return ({},
-            {'display': 'none'},
-            {
-                'display': 'block',
-                'text-align': 'center',
-                'color': 'gray',
-                'font-style': 'italic',
-    })
+            {'display': 'none'}
+           )
 
 
 career = get_career_data()

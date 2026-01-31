@@ -39,13 +39,19 @@
 
 /* Optional: Adjust card width to balance layout */
 .driver-card {
-    width: 280px; /* Slightly reduced for more chart space */
-    /* Keep all your existing driver-card styles */
+    width: 280px; 
+
+}
+.driver-card button{
+    background-color: var(--black)!important;
+    font-weight: bold;
+}
+.toggle-switch label {
+    white-space: pre-line;
 }
 
-
 .card-placeholder {
-    color: #666;
+    color: var(--secondary);
     font-style: italic;
     text-align: center;
     padding-top: 50px;
@@ -53,9 +59,15 @@
 
 .driver-name {
     margin-top: 0;
-    color: #333;
-    border-bottom: 2px solid #007bff;
-    padding-bottom: 10px;
+    color: var(--black);
+    border-bottom: 4px solid var(--black);
+    padding-bottom: .1rem;
+}
+.chart-view {
+    margin-top: 0;
+    color: var(--black);
+    border-bottom: 4px solid var(--primary);
+    padding-bottom: .1rem;
 }
 
 .basic-info p,
@@ -66,25 +78,25 @@
 
 .stats-grid {
     background: white;
-    padding: 12px;
-    border-radius: 4px;
-    margin: 15px 0;
+    padding: .5rem 0;
+    /* border-radius: 4px; */
+    /* margin-top: .5rem; */
 }
 
 .teams-section {
-    border-top: 1px solid #ddd;
-    padding-top: 15px;
-    margin-top: 15px;
+    border-top: 1px solid var(--secondary);
+    padding-top: .8rem;
+    margin-top: .8rem;
 }
 
 .teams-label {
     font-weight: bold;
-    margin-bottom: 5px;
+    margin-bottom: .3rem;
 }
 
 .teams-list {
     font-size: 13px;
-    color: #555;
+    color: var(--secondary);
     line-height: 1.4;
 }
 

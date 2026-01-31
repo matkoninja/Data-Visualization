@@ -9,6 +9,7 @@ from source import (
     results_df,
 )
 from teams import map_team, team_colors, HISTORICAL_TEAM_MAP
+from utils import Colors
 
 
 races = races_df.copy()[['raceId', 'year', 'name']]
@@ -321,11 +322,23 @@ def create_career_plot(mode='start',
         f'Team Lotus Original) represent less prominent/historical '
         'teams', 100)
 
+    tile_text = "Entry" if mode == "start" else "Retirement" if mode == "end" else "Entry And Retirement"   
     fig.update_layout(
-        title='Entry Age of Formula Drivers by Year',
+        title=f'{tile_text} Age of Formula Drivers by Year',
         xaxis_title='Season',
         yaxis_title='Age',
-        plot_bgcolor='white',
+        font_family="Poppins",
+        plot_bgcolor="#FFFFFF",
+
+        title_font_color=Colors.BLACK,
+        xaxis_title_font_color=Colors.SECONDARY,
+        yaxis_title_font_color=Colors.SECONDARY,
+        yaxis_tickfont_color=Colors.SECONDARY,
+        xaxis_tickfont_color=Colors.SECONDARY,
+        legend_font_color=Colors.SECONDARY,
+        legend_title_font_color=Colors.BLACK,
+        # hoverlabel_font_color=Colors.SECONDARY,
+
         height=700,
         showlegend=True,
         legend=dict(
@@ -484,7 +497,6 @@ def create_career_timeline(driver_id):
                + " - Complete Career Timeline"),
         xaxis_title='Year',
         yaxis_title='Best Championship Position',
-        plot_bgcolor='white',
         height=500,
         yaxis=dict(range=y_range),
         xaxis=dict(range=[yearly_best['year'].min() -
@@ -497,7 +509,17 @@ def create_career_timeline(driver_id):
             bgcolor="rgba(255, 255, 255, 0.8)",
             bordercolor="Black",
             borderwidth=1
-        )
+        ),
+        font_family="Poppins",
+        plot_bgcolor="#FFFFFF",
+        title_font_color=Colors.BLACK,
+        xaxis_title_font_color=Colors.SECONDARY,
+        yaxis_title_font_color=Colors.SECONDARY,
+        yaxis_tickfont_color=Colors.SECONDARY,
+        xaxis_tickfont_color=Colors.SECONDARY,
+        legend_font_color=Colors.SECONDARY,
+        legend_title_font_color=Colors.BLACK,
+        hoverlabel_font_color=Colors.SECONDARY,
     )
 
     return fig
