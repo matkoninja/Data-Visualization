@@ -28,6 +28,7 @@
     flex-direction: column;
     gap: 0.5rem;
     flex: 1;
+    border-radius: 1rem;
 }
 
 .circuits-map-info_container {
@@ -58,7 +59,7 @@
 }
 
 .circuit-info_text {
-    color: var(--text-primary);
+    color: var(--text-secondary);
 }
 
 .circuit-info_flag {
