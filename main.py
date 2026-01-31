@@ -1,3 +1,6 @@
+import warnings
+warnings.simplefilter(action='ignore', category=FutureWarning)
+
 from dash import dcc, html, Input, Output, State
 from app import app
 from circuit_map import layout as circuit_map_layout

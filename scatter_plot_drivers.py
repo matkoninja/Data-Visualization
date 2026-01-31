@@ -319,7 +319,7 @@ def create_career_plot(mode='start',
     disclaimer_text = insert_break_after(
         f'Note: Background teams ({other_teams}, Unknown, '
         f'Team Lotus Original) represent less prominent/historical '
-        'teams', 200)
+        'teams', 100)
 
     fig.update_layout(
         title='Entry Age of Formula Drivers by Year',
