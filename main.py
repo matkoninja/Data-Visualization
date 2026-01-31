@@ -12,12 +12,6 @@ from circuit_to_driver import layout as circuit_to_driver_layout
 from source import circuit_names, constructor_names, driver_names
 
 
-MAIN_DROPDOWN_STYLE = {
-    "flex": "1",
-    "background-color": "#f9f9f9",
-}
-
-
 def display_driver_card(clickData):
     if not clickData:
         return html.Div([
@@ -44,8 +38,17 @@ app.callback(
     Input("driver-careers-chart", "clickData")
 )(display_driver_card)
 
+# ------------------------------------------------------------
+#                       Layout
+# ------------------------------------------------------------
+
+MAIN_DROPDOWN_STYLE = {
+    "flex": "1",
+    "background-color": "#f9f9f9",
+}
 
 app.layout = html.Div([
+    # Filters and Controls
     html.Div(
         [
             # Filters container
@@ -67,8 +70,8 @@ app.layout = html.Div([
                                     ),
                                     id='year-range-slider'),
                 ], style={
-                    "width": "100%",
-                    "padding": "0 1rem",
+                    "width": "100%", 
+                    "padding": "1rem 0rem",
                 }),
 
                 # Dropdown Filters: Circuit, Constructor, Driver
@@ -117,7 +120,6 @@ app.layout = html.Div([
                     style={
                         "display": "flex",
                         "gap": "10px",
-                        "padding": "10px",
                         "width": "100%",
                     }
                 ),
@@ -129,28 +131,28 @@ app.layout = html.Div([
                 "gap-y": "0.5rem",
             }, id="filters-container"),
             
-                # Collapse/Expand button
+            # Collapse/Expand button Container
             html.Div(
                 [
                     html.Button(
-                        "Collapse",
+                        "ᐱ",
                         id="filters-button",
                         style={
                             "font-size": "16px",
-                            
                             "border-radius": "8px",
                             "border": "0",
                             "background-color": "var(--bg-main)",
                             "cursor": "pointer",
+                            "width": "100%",
+                            "height": "100%",
                         },
                     ),
                     dcc.Store(id="filters-collapsed"),
                 ],
                 style={
+                    "width": "100%",
                     "height": "2rem",
-                    "display": "flex",
-                    "align-items": "center",
-                    "justify-content": "center",
+                    "text-align": "center"
                 },
             ),
         ],
@@ -163,11 +165,11 @@ app.layout = html.Div([
             "z-index": "100",
             "border-radius": "0 0 1rem 1rem",
             "border": "1px solid #cccccc",
-            "box-shadow": "0 2px 4px rgba(0, 0, 0, 0.1)",
+            "box-shadow": "0 2px 4px rgba(0, 0, 0, 0.3)",
             "display": "flex",
             "flex-direction": "column",
             "align-items": "center",
-            "gap-y": "0.5rem",
+            "padding": "0 1rem",
         },
     ),
 
@@ -231,6 +233,10 @@ app.layout = html.Div([
 ], className="dashboard-container")
 
 
+# ------------------------------------------------------------
+#                       Callbacks
+# ------------------------------------------------------------
+
 @app.callback(
     Output("filters-collapsed", "data"),
     Output("filters-container", "style"),
@@ -256,7 +262,7 @@ def toggle_filters(n_clicks, collapsed, current_style):
         })
     return (collapsed,
             style,
-            "˅˅" if collapsed else "˄˄")
+            "⌵" if collapsed else "ᐱ")
 
 
 @app.callback(

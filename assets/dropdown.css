@@ -4,9 +4,9 @@
     color: var(--text-primary) !important;
 }
 
-.Select-placeholder,
-.Select--single > .Select-control .Select-value {
-    color: var(--text-secondary) !important;
+.Select-placeholder {
+    color: var(--secondary) !important;
+    border: 1px solid var(--border-subtle) !important;
 }
 
 .Select-menu-outer {
@@ -32,4 +32,16 @@
 .Select-option.is-selected {
     background-color: var(--primary);
     color: white;
+}
+
+.Select-value {
+    background-color: var(--bg-panel) !important;
+    border: 1px solid var(--secondary) !important;
+    border-radius: 4px !important;
+    color: var(--text-primary) !important;
+}
+
+.Select-value-icon {
+    color: var(--secondary) !important;
+    border-right: 1px solid var(--border-subtle) !important;
 }

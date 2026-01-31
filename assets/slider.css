@@ -13,8 +13,14 @@
 
 /* change the handle (thumb) */
 .rc-slider-handle {
-    border: solid 2px var(--primary);
-    background-color: var(--bg-panel);
+    border: solid 2px var(--primary) !important;
+    background-color: var(--bg-panel) !important;
+}
+
+/*handle during dragging*/
+.rc-slider-handle-dragging {
+    border-color: var(--primary) !important;
+    box-shadow: 0 0 0 5px color-mix(in srgb, var(--primary) 50%, transparent) !important;
 }
 
 /* optional: change “dot” marks when present */
@@ -24,7 +30,7 @@
 
 /* tooltip background */
 .rc-slider-tooltip-inner {
-    background-color: var(--secondary);
+    background-color: var(--secondary) !important;
     color: var(--text-primary);
 }
 
@@ -32,6 +38,7 @@
 .rc-slider-tooltip-arrow {
     border-top-color: var(--secondary);
 }
+
 
 /* 
     MAIN SLIDER
