@@ -319,8 +319,7 @@ def draw_circuits_map(clickData=None, filterValue=None, inContext=False):
                     visible=False)
 
     fig.update_layout(
-        title="Circuit Locations",
-        margin={"l": 0, "r": 0, "t": 40, "b": 0},
+        margin={"l": 0, "r": 0, "t": 0, "b": 0},
         uirevision='keep-geo',
     )
 
@@ -337,17 +336,9 @@ def draw_circuits_map(clickData=None, filterValue=None, inContext=False):
         ),
     )
 
-    sizes = circuits["race_count"].fillna(0)
-    sizeref = 2.0 * max(sizes) / (30 ** 2)
-
-    fig.update_traces(
-        hovertemplate=("<b>%{hovertext}</b><br>%{customdata[1]}, "
-                       "%{customdata[0]}<br>Race Count: %{customdata[2]}"),
-        marker=dict(
-            sizemin=5,
-            sizeref=sizeref,
-            sizemode='area',
-        ),
+    fig.update_geos(
+        projection_scale=1,
+        center=dict(lat=20, lon=0),
     )
 
     if not inContext:
@@ -505,13 +496,16 @@ app.callback(
 
 
 layout = html.Div(
-    [
+    [   
+        html.H2("Circuit Locations"),
         html.Div(
             [
                 dcc.Graph(
                     figure=draw_circuits_map(),
                     id="circuits-map",
                     className="circuits-map",
+                    style={"width": "100%", "height": "100%"},
+                    config={"responsive": True},
                 ),
                 html.Div(
                     _draw_circuit_info_children(*DEFAULT_CIRCUIT_INFO),

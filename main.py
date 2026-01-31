@@ -178,6 +178,8 @@ app.layout = html.Div([
 
     # Top row: Map + Circuit Info
     circuit_map_layout,
+    
+    html.H2("Drivers per Constructors"),
 
     html.Div([
         dcc.Store(id='driver-id-storage'),
@@ -206,7 +208,7 @@ app.layout = html.Div([
 
     html.Div([
         html.Div([
-            html.H3("Career Timeline", className="timeline-title"),
+            # html.H3("Career Timeline", className="timeline-title"),
             html.P(("Click 'Show Career Timeline' on a driver card "
                     "to view their complete career progression"),
                    className="timeline-instruction",

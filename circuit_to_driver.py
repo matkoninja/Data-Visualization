@@ -89,7 +89,7 @@ MAIN_DROPDOWN_STYLE = {
 
 layout = html.Div([
     html.H2(
-        "Circuits → Constructors → Drivers (Winners Only)",
+        "Driver↔Team↔Circuit Win Relationships",
         style={"padding": "10px"}
     ),
 
@@ -186,7 +186,6 @@ layout = html.Div([
         "height": "100vh",
         "display": "flex",
         "flex-direction": "column",
-        "padding-top": "20px",
         "box-sizing": "border-box",
 },
     **{"data-theme": "light"}
@@ -263,7 +262,7 @@ def update_parcats(selected_circuits,
     # ---- CREATING PARALLEL CATEGORIES FIGURE ----
     fig = px.parallel_categories(
         dff,
-        dimensions=["Circuit_labels", "Constructor", "Driver"],
+        dimensions=["Driver", "Constructor", "Circuit_labels"],
         color="color",
         labels={
             "Circuit_labels": "Circuit",
@@ -280,7 +279,7 @@ def update_parcats(selected_circuits,
     )
 
     fig.update_layout(
-        margin=dict(t=50, l=50, r=50, b=50),
+        margin=dict(t=30, l=55, r=55, b=30),
     )
 
     # ---- OUTPUT FIGURE & UPDATE BUTTON TEXT ----

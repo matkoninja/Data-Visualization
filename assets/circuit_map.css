@@ -11,8 +11,8 @@
 .circuits-lap-times-container {
     display: flex;
     flex-direction: column;
-    gap: 2rem;
     width: auto;
+    margin: 2rem 0rem;
 }
 
 .circuits-map {
@@ -36,8 +36,6 @@
     display: flex;
     justify-content: space-evenly;
     align-items: stretch;
-    /* padding: 2rem */
-    margin-top: 2rem;
 }
 
 .circuit-info_title {
